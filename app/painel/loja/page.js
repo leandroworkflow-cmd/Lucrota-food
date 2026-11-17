@@ -1,0 +1,183 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { usePainel } from '../../../components/PainelShell';
+import { normalizarTelefone, parseValor, slugify, formatarTelefone } from '../../../lib/format';
+import { SITE } from '../../../lib/site';
+import { supabase } from '../../../lib/supabase';
+
+export default function MinhaLoja() {
+  const { user, loja, recarregarLoja } = usePainel();
+  const router = useRouter();
+  const nova = !loja;
+  const [f, setF] = useState({
+    nome: loja?.nome || '',
+    slug: loja?.slug || '',
+    categoria: loja?.categoria || '',
+    descricao: loja?.descricao || '',
+    whatsapp: loja?.whatsapp ? formatarTelefone(loja.whatsapp) : '',
+    endereco: loja?.endereco || '',
+    bairro: loja?.bairro || '',
+    cidade: loja?.cidade || SITE.cidade,
+    taxa_entrega: loja ? String(loja.taxa_entrega).replace('.', ',') : '',
+    pedido_minimo: loja ? String(loja.pedido_minimo).replace('.', ',') : '',
+    tempo_estimado: loja?.tempo_estimado || '40-60 min',
+  });
+  const [slugEditado, setSlugEditado] = useState(false);
+  const [erro, setErro] = useState('');
+  const [ok, setOk] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const campo = (n) => (e) => setF((x) => ({ ...x, [n]: e.target.value }));
+
+  function mudarNome(e) {
+    const nome = e.target.value;
+    setF((x) => ({ ...x, nome, slug: nova && !slugEditado ? slugify(nome) : x.slug }));
+  }
+
+  async function salvar(ev) {
+    ev.preventDefault();
+    setErro('');
+    setOk('');
+    const whatsapp = normalizarTelefone(f.whatsapp);
+    const taxa = f.taxa_entrega.trim() ? parseValor(f.taxa_entrega) : 0;
+    const minimo = f.pedido_minimo.trim() ? parseValor(f.pedido_minimo) : 0;
+    if (f.nome.trim().length < 2) return setErro('Informe o nome da loja.');
+    if (nova && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(f.slug)) return setErro('O endereço da loja deve ter só letras minúsculas, números e hífen.');
+    if (nova && f.slug.length < 3) return setErro('O endereço da loja precisa de pelo menos 3 letras.');
+    if (!whatsapp) return setErro('Informe um WhatsApp com DDD. É por ele que o cliente fala com você.');
+    if (!(taxa >= 0 && taxa <= 100)) return setErro('A taxa de entrega deve ficar entre R$ 0 e R$ 100.');
+    if (!(minimo >= 0 && minimo <= 1000)) return setErro('O pedido mínimo deve ficar entre R$ 0 e R$ 1.000.');
+
+    const dados = {
+      nome: f.nome.trim(),
+      categoria: f.categoria.trim() || null,
+      descricao: f.descricao.trim() || null,
+      whatsapp,
+      endereco: f.endereco.trim() || null,
+      bairro: f.bairro.trim() || null,
+      cidade: f.cidade.trim() || null,
+      taxa_entrega: taxa,
+      pedido_minimo: minimo,
+      tempo_estimado: f.tempo_estimado.trim() || null,
+    };
+
+    setSalvando(true);
+    const { error } = nova
+      ? await supabase.from('dl_lojas').insert({ ...dados, slug: f.slug, dono_id: user.id })
+      : await supabase.from('dl_lojas').update(dados).eq('id', loja.id);
+    setSalvando(false);
+
+    if (error) {
+      if (error.code === '23505' && String(error.message).includes('slug')) {
+        return setErro('Já existe uma loja com esse endereço. Escolha outro.');
+      }
+      if (error.code === '23514') return setErro('Algum campo está fora do limite permitido. Revise os valores.');
+      return setErro('Não consegui salvar. Tente de novo.');
+    }
+    await recarregarLoja();
+    if (nova) router.replace('/painel/cardapio');
+    else setOk('Dados salvos.');
+  }
+
+  const taxa = f.taxa_entrega.trim() ? parseValor(f.taxa_entrega) : 0;
+
+  return (
+    <>
+      <h1 style={{ fontSize: 28 }}>{nova ? 'Cadastre sua loja' : 'Minha loja'}</h1>
+      {nova && (
+        <p className="muted" style={{ margin: 0 }}>
+          Preencha os dados da loja. Depois você monta o cardápio e, quando liberarmos, os clientes já podem pedir.
+        </p>
+      )}
+
+      <form className="cartao" onSubmit={salvar}>
+        <div className="campo">
+          <label htmlFor="nome">Nome da loja</label>
+          <input id="nome" className="input" required maxLength={60} value={f.nome} onChange={mudarNome} />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="slug">Endereço na internet</label>
+          <input
+            id="slug"
+            className="input"
+            required
+            maxLength={40}
+            disabled={!nova}
+            value={f.slug}
+            onChange={(e) => {
+              setSlugEditado(true);
+              setF((x) => ({ ...x, slug: slugify(e.target.value) }));
+            }}
+          />
+          <small>
+            {SITE.url.replace(/^https?:\/\//, '')}/loja/<strong>{f.slug || 'nome-da-loja'}</strong>
+            {!nova && ' (não pode ser mudado depois de criado)'}
+          </small>
+        </div>
+
+        <div className="linha-campos">
+          <div className="campo">
+            <label htmlFor="cat">Tipo de loja</label>
+            <input id="cat" className="input" placeholder="Ex.: Lanchonete" maxLength={30} value={f.categoria} onChange={campo('categoria')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="wa">WhatsApp da loja</label>
+            <input id="wa" className="input" required type="tel" inputMode="tel" placeholder="(31) 99999-9999" value={f.whatsapp} onChange={campo('whatsapp')} />
+          </div>
+        </div>
+
+        <div className="campo">
+          <label htmlFor="desc">Descrição curta (opcional)</label>
+          <input id="desc" className="input" maxLength={200} value={f.descricao} onChange={campo('descricao')} />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="end">Endereço da loja</label>
+          <input id="end" className="input" maxLength={120} value={f.endereco} onChange={campo('endereco')} />
+        </div>
+        <div className="linha-campos">
+          <div className="campo">
+            <label htmlFor="bairro">Bairro</label>
+            <input id="bairro" className="input" maxLength={60} value={f.bairro} onChange={campo('bairro')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="cidade">Cidade</label>
+            <input id="cidade" className="input" maxLength={60} value={f.cidade} onChange={campo('cidade')} />
+          </div>
+        </div>
+
+        <div className="linha-campos">
+          <div className="campo">
+            <label htmlFor="taxa">Taxa de entrega (R$)</label>
+            <input id="taxa" className="input" inputMode="decimal" placeholder="0 = grátis" value={f.taxa_entrega} onChange={campo('taxa_entrega')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="min">Pedido mínimo (R$)</label>
+            <input id="min" className="input" inputMode="decimal" placeholder="0 = sem mínimo" value={f.pedido_minimo} onChange={campo('pedido_minimo')} />
+          </div>
+        </div>
+        <div className="campo">
+          <label htmlFor="tempo">Tempo de entrega</label>
+          <input id="tempo" className="input" maxLength={20} placeholder="40-60 min" value={f.tempo_estimado} onChange={campo('tempo_estimado')} />
+        </div>
+
+        {erro && (
+          <div className="aviso aviso-erro" role="alert">
+            {erro}
+          </div>
+        )}
+        {ok && (
+          <div className="aviso aviso-ok" role="status">
+            {ok}
+          </div>
+        )}
+        <button type="submit" className="btn btn-primario" disabled={salvando}>
+          {salvando ? 'Salvando…' : nova ? 'Cadastrar loja' : 'Salvar dados'}
+        </button>
+      </form>
+    </>
+  );
+}
