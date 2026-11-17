@@ -1,4 +1,4 @@
-# Entrega Local (nome provisório)
+# MeuDelivery
 
 Delivery de bairro: o cliente pede pelo celular, a loja recebe com aviso e a plataforma cobra uma
 comissão sobre o valor dos produtos dos pedidos entregues. Este é o **protótipo da fase 1**

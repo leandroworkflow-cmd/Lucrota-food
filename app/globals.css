@@ -1,9 +1,9 @@
 :root {
-  --azul: #1b3a9e;
-  --azul-escuro: #12286e;
-  --papel: #f4f7fb;
+  --azul: #5a1a9a;
+  --azul-escuro: #3a0f68;
+  --papel: #f7f2fc;
   --branco: #ffffff;
-  --amarelo: #ffc933;
+  --amarelo: #ffc400;
   --tinta: #15171d;
   --muted: #586174;
   --verde: #17805a;
@@ -988,7 +988,7 @@ textarea.input {
   padding: 18px 20px;
   border-radius: 18px;
   color: #fff;
-  background: linear-gradient(120deg, var(--azul) 0%, #2b55d6 100%);
+  background: linear-gradient(120deg, var(--azul-escuro) 0%, #7a2bc4 100%);
 }
 .promo strong {
   display: block;
@@ -1279,5 +1279,200 @@ textarea.input {
 @media (min-width: 700px) {
   .lista-lojas {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== Identidade MeuDelivery: roxo + amarelo ===== */
+.marca {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.marca-amarela {
+  color: var(--amarelo);
+}
+.topo-pill {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 9px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+}
+.script {
+  font-family: var(--font-script), cursive;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.topo-app {
+  background: radial-gradient(120% 140% at 85% -20%, #8a34d6 0%, var(--azul) 45%, var(--azul-escuro) 100%);
+  border-radius: 0 0 28px 28px;
+}
+.topo-app .slogan {
+  font-family: var(--font-script), cursive;
+  color: var(--amarelo);
+  font-size: 19px;
+  margin: 0 0 6px;
+}
+.btn-primario {
+  background: var(--azul);
+  border-color: var(--azul);
+}
+.promo strong {
+  color: var(--amarelo);
+}
+
+/* ===== Página para lojistas ===== */
+.lj-hero {
+  background: radial-gradient(120% 120% at 90% 0%, #8a34d6 0%, var(--azul) 45%, var(--azul-escuro) 100%);
+  color: #fff;
+  padding-bottom: 44px;
+  border-radius: 0 0 36px 36px;
+}
+.lj-hero h1 {
+  font-size: clamp(36px, 9vw, 60px);
+  line-height: 1.02;
+  margin: 18px 0 8px;
+  letter-spacing: -0.03em;
+}
+.lj-hero .script {
+  display: block;
+  color: var(--amarelo);
+  font-size: clamp(38px, 10vw, 66px);
+  line-height: 1.1;
+  transform: rotate(-3deg);
+  transform-origin: left;
+  margin-top: 6px;
+}
+.lj-hero p {
+  font-size: 18px;
+  max-width: 34ch;
+  margin: 18px 0 24px;
+}
+.btn-amarelo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #ffd23d, var(--amarelo));
+  color: var(--tinta);
+  font-weight: 800;
+  font-size: 18px;
+  padding: 18px 28px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 6px 0 #c79600;
+}
+.lj-tipos {
+  display: grid;
+  gap: 14px;
+  margin-top: -22px;
+}
+.lj-tipo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(58, 15, 104, 0.15);
+}
+.lj-tipo-icone {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  font-size: 38px;
+  border-radius: 20px;
+  background: #fff3cf;
+}
+.lj-tipo h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.lj-tipo p {
+  margin: 2px 0 0;
+  color: var(--azul);
+  font-weight: 600;
+  font-size: 14px;
+}
+.lj-vantagens {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 14px;
+  list-style: none;
+  padding: 0;
+  margin: 36px 0;
+  text-align: center;
+}
+.lj-vantagens li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.lj-vantagens .ic {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: var(--azul);
+  border-radius: 50%;
+}
+.lj-passos {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+.lj-passos ol {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+.lj-cta {
+  background: linear-gradient(180deg, #ffd23d, var(--amarelo));
+  border-radius: 28px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--tinta);
+  text-decoration: none;
+  box-shadow: 0 6px 0 #c79600;
+}
+.lj-cta strong {
+  display: block;
+  font-size: 22px;
+  font-family: var(--font-display), sans-serif;
+}
+.lj-cta span {
+  font-size: 14px;
+}
+.lj-cta .seta {
+  margin-left: auto;
+  font-size: 30px;
+  font-weight: 800;
+}
+.lj-fecho {
+  text-align: center;
+  font-size: 32px;
+  color: var(--azul);
+  margin: 32px 0 0;
+}
+@media (min-width: 760px) {
+  .lj-tipos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .lj-tipo {
+    flex-direction: column;
+    text-align: center;
+  }
+  .lj-vantagens {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

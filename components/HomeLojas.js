@@ -28,10 +28,11 @@ export default function HomeLojas({ lojas }) {
         <div className="pagina">
           <div className="topo-linha">
             <Marca />
-            <Link href="/painel" className="topo-link">
-              Sou lojista
+            <Link href="/lojistas" className="topo-pill">
+              Para lojistas
             </Link>
           </div>
+          <p className="slogan">{SITE.slogan}</p>
           <p className="local">
             <span aria-hidden="true">📍</span> Entregando em <strong>{SITE.cidade}, {SITE.uf}</strong>
           </p>

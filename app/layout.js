@@ -1,9 +1,10 @@
 import './globals.css';
-import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
+import { Kaushan_Script, Poppins } from 'next/font/google';
 import { SITE } from '../lib/site';
 
-const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display' });
-const body = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-body' });
+const display = Poppins({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display' });
+const body = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' });
+const script = Kaushan_Script({ subsets: ['latin'], weight: '400', variable: '--font-script' });
 
 export const metadata = {
   metadataBase: new URL(SITE.url),
@@ -15,11 +16,11 @@ export const metadata = {
   appleWebApp: { capable: true, title: SITE.nome, statusBarStyle: 'default' },
 };
 
-export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#1b3a9e' };
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#5a1a9a' };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
+    <html lang="pt-BR" className={`${display.variable} ${body.variable} ${script.variable}`}>
       <body>{children}</body>
     </html>
   );
