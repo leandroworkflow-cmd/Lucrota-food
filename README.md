@@ -47,3 +47,9 @@ entrega não entra).
 - Uma loja por conta Google.
 - O limite de pedidos por IP é simples (em memória do servidor). Para mais proteção, use um serviço próprio.
 - Revise os Termos e a Política de Privacidade com um advogado antes de abrir ao público.
+
+## Fotos e loja de exemplo
+
+1. No Supabase (SQL Editor), rode `supabase/02-imagens.sql`: cria as colunas de foto e a pasta pública `dl-imagens`.
+2. Troque `SEU_EMAIL_DO_GOOGLE@gmail.com` em `supabase/03-loja-exemplo.sql` pelo seu e-mail e rode: cria a "Lanchonete Exemplo" já liberada.
+3. No painel (Minha loja e Cardápio) o lojista envia logo, capa e foto de cada item. A foto é reduzida no celular antes do envio.

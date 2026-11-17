@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import Cardapio from '../../../components/Cardapio';
 import JsonLd from '../../../components/JsonLd';
-import Marca from '../../../components/Marca';
+import LogoLoja from '../../../components/LogoLoja';
 import Rodape from '../../../components/Rodape';
 import { brl } from '../../../lib/format';
 import { corDaLoja, lojaComCardapio } from '../../../lib/lojas';
@@ -50,47 +50,37 @@ export default async function PaginaLoja({ params }) {
           },
         }}
       />
-      <header className="topo">
-        <div className="pagina topo-in">
-          <Marca />
-          <Link href="/" className="topo-link">
-            Outras lojas
-          </Link>
-        </div>
-      </header>
+      <div className="capa" style={{ '--cor': corDaLoja(loja.slug) }}>
+        {loja.capa_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={loja.capa_url} alt="" className="capa-img" />
+        ) : (
+          <div className="capa-toldo" aria-hidden="true" />
+        )}
+        <Link href="/" className="voltar" aria-label="Voltar para a lista de lojas">
+          ←
+        </Link>
+      </div>
 
       <div className="pagina">
-        <div className="fachada" style={{ '--cor': corDaLoja(loja.slug), marginBottom: 0 }}>
-          <h1 className="fachada-nome">{loja.nome}</h1>
-          <div className="fachada-info">
-            <span className={loja.aberta ? 'situacao' : 'situacao fechada'}>
-              {loja.aberta ? 'Aberta' : 'Fechada agora'}
-            </span>
-            {loja.categoria && <span>{loja.categoria}</span>}
-            {loja.bairro && <span>{loja.bairro}</span>}
+        <div className="loja-cab">
+          <LogoLoja loja={loja} tamanho={76} className="logo-sobre" />
+          <div className="loja-cab-texto">
+            <h1>{loja.nome}</h1>
+            <div className="muted">{[loja.categoria, loja.bairro].filter(Boolean).join(' · ')}</div>
           </div>
+          <span className={loja.aberta ? 'selo aberta' : 'selo'}>{loja.aberta ? 'Aberta' : 'Fechada'}</span>
         </div>
 
-        {loja.descricao && (
-          <p className="muted" style={{ margin: '14px 0 0' }}>
-            {loja.descricao}
-          </p>
-        )}
+        {loja.descricao && <p className="muted" style={{ margin: '4px 0 0' }}>{loja.descricao}</p>}
 
-        <dl className="infos">
-          <div>
-            <dt>Entrega</dt>
-            <dd>{Number(loja.taxa_entrega) > 0 ? brl(loja.taxa_entrega) : 'Grátis'}</dd>
-          </div>
-          <div>
-            <dt>Tempo</dt>
-            <dd>{loja.tempo_estimado || 'Consulte'}</dd>
-          </div>
-          <div>
-            <dt>Pedido mínimo</dt>
-            <dd>{Number(loja.pedido_minimo) > 0 ? brl(loja.pedido_minimo) : 'Sem mínimo'}</dd>
-          </div>
-        </dl>
+        <div className="pilulas">
+          <span className={Number(loja.taxa_entrega) > 0 ? 'pilula' : 'pilula gratis'}>
+            🛵 {Number(loja.taxa_entrega) > 0 ? `Entrega ${brl(loja.taxa_entrega)}` : 'Entrega grátis'}
+          </span>
+          {loja.tempo_estimado && <span className="pilula">🕒 {loja.tempo_estimado}</span>}
+          {Number(loja.pedido_minimo) > 0 && <span className="pilula">🧾 Mínimo {brl(loja.pedido_minimo)}</span>}
+        </div>
 
         <Cardapio loja={loja} produtos={produtos} />
       </div>

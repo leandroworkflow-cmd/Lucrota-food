@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import CampoImagem from '../../../components/CampoImagem';
 import { usePainel } from '../../../components/PainelShell';
 import { normalizarTelefone, parseValor, slugify, formatarTelefone } from '../../../lib/format';
 import { SITE } from '../../../lib/site';
@@ -23,6 +24,8 @@ export default function MinhaLoja() {
     taxa_entrega: loja ? String(loja.taxa_entrega).replace('.', ',') : '',
     pedido_minimo: loja ? String(loja.pedido_minimo).replace('.', ',') : '',
     tempo_estimado: loja?.tempo_estimado || '40-60 min',
+    logo_url: loja?.logo_url || '',
+    capa_url: loja?.capa_url || '',
   });
   const [slugEditado, setSlugEditado] = useState(false);
   const [erro, setErro] = useState('');
@@ -61,6 +64,8 @@ export default function MinhaLoja() {
       taxa_entrega: taxa,
       pedido_minimo: minimo,
       tempo_estimado: f.tempo_estimado.trim() || null,
+      logo_url: f.logo_url || null,
+      capa_url: f.capa_url || null,
     };
 
     setSalvando(true);
@@ -93,6 +98,11 @@ export default function MinhaLoja() {
       )}
 
       <form className="cartao" onSubmit={salvar}>
+        <div className="linha-campos">
+          <CampoImagem rotulo="Logo da loja" formato="redondo" maxLado={400} userId={user.id} valor={f.logo_url} onChange={(v) => setF((x) => ({ ...x, logo_url: v }))} />
+          <CampoImagem rotulo="Foto de capa" formato="largo" maxLado={1200} userId={user.id} valor={f.capa_url} onChange={(v) => setF((x) => ({ ...x, capa_url: v }))} />
+        </div>
+
         <div className="campo">
           <label htmlFor="nome">Nome da loja</label>
           <input id="nome" className="input" required maxLength={60} value={f.nome} onChange={mudarNome} />

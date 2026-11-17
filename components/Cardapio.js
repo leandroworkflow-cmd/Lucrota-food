@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { brl, parseValor, round2 } from '../lib/format';
 import { FORMAS } from '../lib/pedido';
+import { emojiDoItem } from '../lib/visual';
 
 const CHAVE_CLIENTE = 'dl:cliente:v1';
 
@@ -148,35 +149,44 @@ export default function Cardapio({ loja, produtos }) {
               <h2>{nome}</h2>
               <ul className="itens">
                 {itens.map((p) => (
-                  <li key={p.id} className="item">
-                    <div className="item-linha">
+                  <li key={p.id} className="prato">
+                    <div className="prato-texto">
                       <span className="item-nome">{p.nome}</span>
-                      <span className="pontos" aria-hidden="true" />
+                      {p.descricao && <span className="item-desc">{p.descricao}</span>}
                       <span className="item-preco">{brl(p.preco)}</span>
                     </div>
-                    {p.descricao && <div className="item-desc">{p.descricao}</div>}
-                    <div className="item-acao">
-                      {sacola[p.id] > 0 ? (
-                        <div className="qtd" role="group" aria-label={`Quantidade de ${p.nome}`}>
-                          <button type="button" onClick={() => mudar(p.id, -1)} aria-label={`Tirar um ${p.nome}`}>
-                            −
-                          </button>
-                          <output>{sacola[p.id]}</output>
-                          <button type="button" onClick={() => mudar(p.id, 1)} aria-label={`Adicionar mais um ${p.nome}`}>
+                    <div className="prato-foto">
+                      {p.imagem_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imagem_url} alt="" loading="lazy" />
+                      ) : (
+                        <span className="prato-emoji" aria-hidden="true">
+                          {emojiDoItem(p.nome, p.categoria)}
+                        </span>
+                      )}
+                      <div className="prato-acao">
+                        {sacola[p.id] > 0 ? (
+                          <div className="qtd" role="group" aria-label={`Quantidade de ${p.nome}`}>
+                            <button type="button" onClick={() => mudar(p.id, -1)} aria-label={`Tirar um ${p.nome}`}>
+                              −
+                            </button>
+                            <output>{sacola[p.id]}</output>
+                            <button type="button" onClick={() => mudar(p.id, 1)} aria-label={`Adicionar mais um ${p.nome}`}>
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="mais"
+                            onClick={() => mudar(p.id, 1)}
+                            aria-label={`Adicionar ${p.nome} à sacola`}
+                            disabled={!loja.aberta}
+                          >
                             +
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="mais"
-                          onClick={() => mudar(p.id, 1)}
-                          aria-label={`Adicionar ${p.nome} à sacola`}
-                          disabled={!loja.aberta}
-                        >
-                          +
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}

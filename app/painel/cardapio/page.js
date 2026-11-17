@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import CampoImagem from '../../../components/CampoImagem';
 import { usePainel } from '../../../components/PainelShell';
 import { brl, parseValor } from '../../../lib/format';
 import { supabase } from '../../../lib/supabase';
 
-const VAZIO = { nome: '', categoria: '', preco: '', descricao: '' };
+const VAZIO = { nome: '', categoria: '', preco: '', descricao: '', imagem_url: '' };
 
-function Formulario({ inicial, categorias, rotuloBotao, onSalvar, onCancelar }) {
+function Formulario({ userId, inicial, categorias, rotuloBotao, onSalvar, onCancelar }) {
   const [f, setF] = useState(inicial);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -25,6 +26,7 @@ function Formulario({ inicial, categorias, rotuloBotao, onSalvar, onCancelar }) 
       categoria: f.categoria.trim().slice(0, 30) || 'Geral',
       preco: Math.round(preco * 100) / 100,
       descricao: f.descricao.trim().slice(0, 160) || null,
+      imagem_url: f.imagem_url || null,
     });
     setSalvando(false);
     if (erroSalvar) setErro(erroSalvar);
@@ -57,6 +59,7 @@ function Formulario({ inicial, categorias, rotuloBotao, onSalvar, onCancelar }) 
         <label htmlFor={`${id}-d`}>Descrição (opcional)</label>
         <input id={`${id}-d`} className="input" value={f.descricao} onChange={campo('descricao')} maxLength={160} />
       </div>
+      <CampoImagem rotulo="Foto do item (opcional)" userId={userId} maxLado={800} valor={f.imagem_url} onChange={(v) => setF((x) => ({ ...x, imagem_url: v }))} />
       {erro && (
         <div className="aviso aviso-erro" role="alert">
           {erro}
@@ -77,7 +80,7 @@ function Formulario({ inicial, categorias, rotuloBotao, onSalvar, onCancelar }) 
 }
 
 export default function Cardapio() {
-  const { loja } = usePainel();
+  const { loja, user } = usePainel();
   const [produtos, setProdutos] = useState([]);
   const [carregado, setCarregado] = useState(false);
   const [erro, setErro] = useState('');
@@ -152,7 +155,7 @@ export default function Cardapio() {
 
       <section className="cartao" aria-labelledby="novo-item">
         <h2 id="novo-item">Adicionar item</h2>
-        <Formulario inicial={VAZIO} categorias={categorias} rotuloBotao="Adicionar ao cardápio" onSalvar={criar} />
+        <Formulario userId={user.id} inicial={VAZIO} categorias={categorias} rotuloBotao="Adicionar ao cardápio" onSalvar={criar} />
       </section>
 
       {!carregado ? (
@@ -168,7 +171,8 @@ export default function Cardapio() {
                 editando === p.id ? (
                   <div key={p.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--linha)' }}>
                     <Formulario
-                      inicial={{ nome: p.nome, categoria: p.categoria, preco: String(p.preco).replace('.', ','), descricao: p.descricao || '' }}
+                      userId={user.id}
+                      inicial={{ nome: p.nome, categoria: p.categoria, preco: String(p.preco).replace('.', ','), descricao: p.descricao || '', imagem_url: p.imagem_url || '' }}
                       categorias={categorias}
                       rotuloBotao="Salvar alterações"
                       onSalvar={(dados) => atualizar(p.id, dados)}
@@ -177,10 +181,16 @@ export default function Cardapio() {
                   </div>
                 ) : (
                   <div key={p.id} className={p.ativo ? 'produto-linha' : 'produto-linha inativo'}>
-                    <div>
+                    <div className="produto-info">
+                      {p.imagem_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imagem_url} alt="" className="produto-mini" />
+                      )}
+                      <div>
                       <strong>{p.nome}</strong>
                       {!p.ativo && <span className="muted"> (pausado)</span>}
                       {p.descricao && <div className="muted" style={{ fontSize: 14 }}>{p.descricao}</div>}
+                      </div>
                     </div>
                     <strong>{brl(p.preco)}</strong>
                     <div className="opcoes" style={{ gridColumn: '1 / -1' }}>
