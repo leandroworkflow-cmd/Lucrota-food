@@ -193,15 +193,13 @@ export default function Pedidos() {
 
   async function mudarStatus(p, status) {
     setOcupado(true);
-    const { error } = await supabase
-      .from('dl_pedidos')
-      .update({ status, atualizado_em: new Date().toISOString() })
-      .eq('id', p.id);
-    setOcupado(false);
-    if (error) {
-      setErro('Não consegui mudar o status. Tente de novo.');
-      return;
+    try {
+      await api('/api/loja/status', { metodo: 'POST', corpo: { pedido_id: p.id, status } });
+      setErro('');
+    } catch (e) {
+      setErro(e.message);
     }
+    setOcupado(false);
     carregar();
   }
 

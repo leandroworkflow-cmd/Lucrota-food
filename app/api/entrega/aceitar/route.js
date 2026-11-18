@@ -1,3 +1,5 @@
+import { avisoParaLoja } from '../../../../lib/avisos-texto';
+import { avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
@@ -20,7 +22,7 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,status,loja_id,entrega,entregador_id,dl_lojas(aceita_plataforma)')
+    .select('id,numero,status,loja_id,entrega,entregador_id,dl_lojas(aceita_plataforma,dono_id)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido || !entregadorPodeVer(ent, pedido, pedido.dl_lojas)) return erro('Essa corrida não está mais disponível.', 409);
@@ -36,5 +38,10 @@ export async function POST(request) {
     .maybeSingle();
   if (error) return erro('Não consegui aceitar agora. Tente de novo.', 502);
   if (!pego) return erro('Outro entregador pegou essa corrida primeiro.', 409);
+  await avisarUsuarios(admin, [pedido.dl_lojas?.dono_id].filter(Boolean), {
+    ...avisoParaLoja('aceitou', { numero: pedido.numero, entregadorNome: ent.nome.split(' ')[0] }),
+    url: '/painel',
+    tag: `entrega-${pedido.numero}`,
+  });
   return Response.json({ ok: true });
 }

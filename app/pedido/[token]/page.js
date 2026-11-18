@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import AvisosPush from '../../../components/AvisosPush';
 import Marca from '../../../components/Marca';
 import RastreioEntrega from '../../../components/RastreioEntrega';
 import Rodape from '../../../components/Rodape';
@@ -89,6 +90,17 @@ export default function Acompanhar() {
                   </li>
                 ))}
               </ol>
+            )}
+
+            {!final && (
+              <AvisosPush
+                titulo="Avisos deste pedido"
+                descricao="Receba um aviso no celular quando a loja aceitar, o pedido sair e quando chegar."
+                inscrever={async (subscription) => {
+                  const r = await fetch(`/api/pedidos/${token}/push`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription }) });
+                  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Não consegui ativar os avisos.');
+                }}
+              />
             )}
 
             {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && <RastreioEntrega pedido={pedido} />}

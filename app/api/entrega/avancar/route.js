@@ -1,3 +1,5 @@
+import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
+import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { passoDaEntrega } from '../../../../lib/entrega';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
@@ -14,7 +16,7 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,status,entregador_id,entrega')
+    .select('id,numero,token,status,entregador_id,entrega,dl_lojas(dono_id,nome)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido) return erro('Pedido não encontrado.', 404);
@@ -32,6 +34,18 @@ export async function POST(request) {
       .eq('entregador_id', ent.id)
       .eq('status', 'saiu');
     if (!count) await admin.from('dl_localizacoes').delete().eq('entregador_id', ent.id);
+  }
+
+  const primeiroNome = ent.nome.split(' ')[0];
+  if (body.acao === 'coletei' || body.acao === 'entreguei') {
+    const status = body.acao === 'coletei' ? 'saiu' : 'entregue';
+    const aviso = avisoDoCliente(status, { numero: pedido.numero, lojaNome: pedido.dl_lojas?.nome, entregadorNome: primeiroNome });
+    await avisarCliente(admin, pedido.id, { ...aviso, url: `/pedido/${pedido.token}`, tag: `pedido-${pedido.numero}` });
+    await avisarUsuarios(admin, [pedido.dl_lojas?.dono_id].filter(Boolean), {
+      ...avisoParaLoja(body.acao === 'coletei' ? 'coletou' : 'entregou', { numero: pedido.numero, entregadorNome: primeiroNome }),
+      url: '/painel',
+      tag: `entrega-${pedido.numero}`,
+    });
   }
   return Response.json({ ok: true });
 }

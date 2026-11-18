@@ -48,6 +48,13 @@ entrega não entra).
 - O limite de pedidos por IP é simples (em memória do servidor). Para mais proteção, use um serviço próprio.
 - Revise os Termos e a Política de Privacidade com um advogado antes de abrir ao público.
 
+## Avisos no celular
+
+1. Rode `supabase/05-avisos.sql` no Supabase.
+2. Gere as chaves com `npx web-push generate-vapid-keys` e coloque no Vercel: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` (`mailto:seu-email`). Faça um Redeploy.
+3. Quem recebe: a loja (pedido novo, entregador aceitou, saiu, entregue), o entregador (corrida nova) e o cliente (aceito, preparo, saiu, entregue, cancelado). Cada um ativa pelo botão "Ativar avisos" na própria tela.
+4. No iPhone os avisos só funcionam com o site instalado na Tela de Início.
+
 ## GPS e entregadores (gratuito)
 
 Mapa: OpenStreetMap + Leaflet. Rota e tempo: OSRM público. Endereço para coordenadas: Nominatim. Nenhum serviço pago e nenhuma chave extra.

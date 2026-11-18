@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import AvisosPush from '../../components/AvisosPush';
 import Mapa from '../../components/Mapa';
 import Marca from '../../components/Marca';
 import { api } from '../../lib/api-cliente';
@@ -279,6 +280,13 @@ function Painel({ dados, recarregar }) {
           </div>
         )}
       </section>
+
+      <AvisosPush
+        titulo="Avisos de corrida nova"
+        descricao="Receba um alerta no celular quando uma loja chamar um entregador, mesmo com o site fechado."
+        inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
+        desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
+      />
 
       {ativas.map((p) => (
         <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} ocupado={ocupado} />

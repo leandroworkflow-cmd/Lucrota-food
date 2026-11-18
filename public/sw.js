@@ -14,17 +14,17 @@ self.addEventListener('push', (event) => {
       body: d.corpo || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      tag: 'novo-pedido',
+      tag: d.tag || 'novo-pedido',
       renotify: true,
-      requireInteraction: true,
-      data: { url: d.url || '/painel' },
+      requireInteraction: d.tag ? false : true,
+      data: { url: d.url || '/' },
     })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/painel';
+  const url = (event.notification.data && event.notification.data.url) || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
       for (const j of janelas) {
