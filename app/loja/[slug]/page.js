@@ -6,6 +6,7 @@ import LogoLoja from '../../../components/LogoLoja';
 import Rodape from '../../../components/Rodape';
 import { brl } from '../../../lib/format';
 import { corDaLoja, lojaComCardapio } from '../../../lib/lojas';
+import { fotoDaLoja } from '../../../lib/visual';
 import { SITE } from '../../../lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -51,9 +52,9 @@ export default async function PaginaLoja({ params }) {
         }}
       />
       <div className="capa" style={{ '--cor': corDaLoja(loja.slug) }}>
-        {loja.capa_url ? (
+        {loja.capa_url || fotoDaLoja(loja) ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={loja.capa_url} alt="" className="capa-img" />
+          <img src={loja.capa_url || fotoDaLoja(loja)} alt="" className="capa-img" />
         ) : (
           <div className="capa-toldo" aria-hidden="true" />
         )}

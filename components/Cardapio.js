@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { brl, parseValor, round2 } from '../lib/format';
 import { FORMAS } from '../lib/pedido';
+import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
 
 const CHAVE_CLIENTE = 'dl:cliente:v1';
@@ -115,6 +116,7 @@ export default function Cardapio({ loja, produtos }) {
       gravar(CHAVE_CLIENTE, cliente);
       gravar(chaveSacola, {});
       setSacola({});
+      guardarPedido({ token: json.token, loja: loja.nome, em: Date.now() });
       router.push(`/pedido/${json.token}`);
     } catch (e) {
       setErro(e.message || 'Não consegui enviar o pedido. Confira a internet e tente de novo.');
