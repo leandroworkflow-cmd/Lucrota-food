@@ -9,6 +9,7 @@ export default function Rodape() {
           {SITE.nome}, {SITE.cidade} - {SITE.uf}
         </span>
         <Link href="/lojistas">Para lojistas</Link>
+        <Link href="/entregador">Seja entregador</Link>
         <Link href="/termos">Termos de uso</Link>
         <Link href="/privacidade">Privacidade</Link>
         <a href={`mailto:${SITE.email}`}>{SITE.email}</a>

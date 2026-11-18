@@ -1,10 +1,10 @@
 -- Loja de EXEMPLO para a página inicial não ficar vazia (e para você testar o pedido).
--- 1) Troque o e-mail abaixo pelo da conta Google que você usa para entrar no painel.
+-- 1) A loja fica na conta que entrou por último no painel (entre no /painel com o seu Google antes de rodar).
 -- 2) Rode no SQL Editor. Cada conta tem uma loja só: para cadastrar a sua loja de verdade,
 --    primeiro apague a de exemplo com o comando que está no fim deste arquivo.
 
 with dono as (
-  select id from auth.users where email = 'SEU_EMAIL_DO_GOOGLE@gmail.com' limit 1
+  select id from auth.users order by last_sign_in_at desc nulls last limit 1
 ), loja as (
   insert into public.dl_lojas
     (dono_id, nome, slug, descricao, categoria, whatsapp, endereco, bairro, cidade,

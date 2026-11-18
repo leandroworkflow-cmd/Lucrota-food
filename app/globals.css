@@ -1783,3 +1783,56 @@ body:has(.nav-inf) .rodape {
   padding-bottom: 100px;
 }
 .cat span:last-child { text-transform: capitalize; }
+
+/* ===== Mapa e entregas ===== */
+.mapa {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #e8e4f0;
+  z-index: 0;
+}
+.mapa-falha {
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px dashed var(--linha);
+  color: var(--muted);
+  font-size: 14px;
+}
+.marca-mapa {
+  background: none;
+  border: 0;
+}
+.marca-mapa-in {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: #fff;
+  border: 3px solid var(--azul);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.marca-moto {
+  background: var(--amarelo);
+  border-color: var(--tinta);
+}
+.marca-voce {
+  font-size: 14px;
+}
+.entrega-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--linha);
+}
+.entrega-info strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 20px;
+}

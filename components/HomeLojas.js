@@ -55,6 +55,7 @@ export default function HomeLojas({ lojas }) {
               <div className="menu-lista">
                 <Link href="/meus-pedidos">Meus pedidos</Link>
                 <Link href="/lojistas">Para lojistas</Link>
+                <Link href="/entregador">Seja entregador</Link>
                 <Link href="/termos">Termos de uso</Link>
                 <Link href="/privacidade">Privacidade</Link>
               </div>

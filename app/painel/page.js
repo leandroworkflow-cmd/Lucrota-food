@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import NotificacoesLoja from '../../components/NotificacoesLoja';
 import { usePainel } from '../../components/PainelShell';
+import { api } from '../../lib/api-cliente';
 import { brl, formatarTelefone, hora, linkWhatsApp } from '../../lib/format';
 import { ACAO, FORMAS, PROXIMO, STATUS } from '../../lib/pedido';
 import { supabase } from '../../lib/supabase';
@@ -35,8 +36,11 @@ function bipar() {
 
 const mesmoDia = (iso) => new Date(iso).toDateString() === new Date().toDateString();
 
-function CartaoPedido({ p, onStatus, ocupado }) {
-  const proximo = PROXIMO[p.status];
+function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
+  // Com entregador aceito, ele conduz as etapas "saiu" e "entregue" pelo app dele.
+  const entregadorCuida = Boolean(p.entregador_id) && ['preparo', 'saiu'].includes(p.status);
+  const proximo = entregadorCuida ? null : PROXIMO[p.status];
+  const podeChamar = ['aceito', 'preparo'].includes(p.status) && !p.entrega;
   const cancelavel = ['novo', 'aceito', 'preparo'].includes(p.status);
   return (
     <li className={p.status === 'novo' ? 'pedido novo' : 'pedido'}>
@@ -76,6 +80,29 @@ function CartaoPedido({ p, onStatus, ocupado }) {
         <span className="pedido-meta">Entrega {brl(p.taxa_entrega)}</span>
         <strong>{brl(p.total)}</strong>
       </div>
+      {(p.entrega || podeChamar) && (
+        <div className="entrega-info" style={{ padding: '10px 12px' }}>
+          {p.entregador_id ? (
+            <>
+              <span>🛵 Entregador {p.status === 'saiu' ? 'com o pedido' : 'aceitou a corrida'}</span>
+              <a href={`/pedido/${p.token}`} target="_blank" rel="noopener noreferrer">
+                Ver no mapa
+              </a>
+            </>
+          ) : p.entrega === 'procurando' ? (
+            <>
+              <span>🔎 Procurando entregador…</span>
+              <button type="button" className="btn btn-pequeno" disabled={ocupado} onClick={() => onChamar(p, true)}>
+                Cancelar chamada
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn-pequeno btn-primario" disabled={ocupado} onClick={() => onChamar(p, false)}>
+              🛵 Chamar entregador
+            </button>
+          )}
+        </div>
+      )}
       {(proximo || cancelavel) && (
         <div className="pedido-acoes">
           {proximo && (
@@ -178,6 +205,18 @@ export default function Pedidos() {
     carregar();
   }
 
+  async function chamarEntregador(p, cancelar) {
+    setOcupado(true);
+    try {
+      await api('/api/entrega/chamar', { metodo: 'POST', corpo: { pedido_id: p.id, cancelar } });
+      setErro('');
+    } catch (e) {
+      setErro(e.message);
+    }
+    setOcupado(false);
+    carregar();
+  }
+
   async function alternarAberta() {
     const { error } = await supabase.from('dl_lojas').update({ aberta: !loja.aberta }).eq('id', loja.id);
     if (error) setErro('Não consegui mudar o horário da loja.');
@@ -234,7 +273,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {novos.map((p) => (
-                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
               ))}
             </ul>
             {novos.length === 0 && <p className="muted">Nenhum pedido novo. Esta tela atualiza sozinha.</p>}
@@ -245,7 +284,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {andamento.map((p) => (
-                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
               ))}
             </ul>
             {andamento.length === 0 && <p className="muted">Nada em andamento.</p>}
@@ -256,7 +295,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {finalizados.map((p) => (
-                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
               ))}
             </ul>
             {finalizados.length === 0 && <p className="muted">Ainda não há pedidos finalizados hoje.</p>}

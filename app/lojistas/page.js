@@ -82,6 +82,10 @@ export default function Lojistas() {
           </ol>
         </section>
 
+        <p style={{ textAlign: 'center', margin: '0 0 20px' }}>
+          Tem moto ou bicicleta? <Link href="/entregador">Faça entregas pelo {SITE.nome}</Link>.
+        </p>
+
         <Link href="/painel" className="lj-cta">
           <span style={{ fontSize: 40 }} aria-hidden="true">
             🏪

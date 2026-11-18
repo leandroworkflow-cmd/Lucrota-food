@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import Marca from '../../../components/Marca';
+import RastreioEntrega from '../../../components/RastreioEntrega';
 import Rodape from '../../../components/Rodape';
 import { brl, hora, linkWhatsApp } from '../../../lib/format';
 import { FORMAS } from '../../../lib/pedido';
@@ -42,9 +43,9 @@ export default function Acompanhar() {
     if (final) return undefined;
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') carregar();
-    }, 10000);
+    }, pedido?.status === 'saiu' ? 5000 : 10000);
     return () => clearInterval(id);
-  }, [final, carregar]);
+  }, [final, carregar, pedido?.status]);
 
   const loja = pedido?.dl_lojas;
   const indice = pedido ? ETAPAS.findIndex(([id]) => id === pedido.status) : -1;
@@ -89,6 +90,8 @@ export default function Acompanhar() {
                 ))}
               </ol>
             )}
+
+            {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && <RastreioEntrega pedido={pedido} />}
 
             {loja?.whatsapp && (
               <a

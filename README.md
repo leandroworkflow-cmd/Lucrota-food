@@ -48,6 +48,18 @@ entrega não entra).
 - O limite de pedidos por IP é simples (em memória do servidor). Para mais proteção, use um serviço próprio.
 - Revise os Termos e a Política de Privacidade com um advogado antes de abrir ao público.
 
+## GPS e entregadores (gratuito)
+
+Mapa: OpenStreetMap + Leaflet. Rota e tempo: OSRM público. Endereço para coordenadas: Nominatim. Nenhum serviço pago e nenhuma chave extra.
+
+1. **Antes de publicar esta versão**, rode `supabase/04-entregas.sql` no Supabase (ou o `00-tudo-de-uma-vez.sql`, em um projeto novo).
+2. Em *Minha loja*, a loja marca o ponto no mapa e copia o código dos seus entregadores.
+3. Entregador: entra em `/entregador` com o Google. Com o código da loja entra liberado só para ela. Sem código, entra na plataforma e você libera pelo SQL:
+   `update public.dl_entregadores set aprovado = true where telefone = '5531999990000';`
+4. Fluxo: loja aceita o pedido, clica em *Chamar entregador*, o entregador aceita, pega o pedido (o GPS dele passa a aparecer para o cliente) e confirma a entrega.
+
+Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar (uso leve). Com muito volume, troque por um provedor próprio (MapTiler, Stadia, OSRM hospedado).
+
 ## Fotos e loja de exemplo
 
 1. No Supabase (SQL Editor), rode `supabase/02-imagens.sql`: cria as colunas de foto e a pasta pública `dl-imagens`.

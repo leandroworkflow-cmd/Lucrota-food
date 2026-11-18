@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import CampoImagem from '../../../components/CampoImagem';
+import Mapa from '../../../components/Mapa';
+import { api } from '../../../lib/api-cliente';
+import { noBrasil } from '../../../lib/geo';
 import { usePainel } from '../../../components/PainelShell';
 import { normalizarTelefone, parseValor, slugify, formatarTelefone } from '../../../lib/format';
 import { SITE } from '../../../lib/site';
@@ -27,6 +30,10 @@ export default function MinhaLoja() {
     logo_url: loja?.logo_url || '',
     capa_url: loja?.capa_url || '',
   });
+  const [ponto, setPonto] = useState(loja && Number.isFinite(loja.lat) ? { lat: loja.lat, lng: loja.lng } : null);
+  const [aceitaPlataforma, setAceitaPlataforma] = useState(loja ? loja.aceita_plataforma !== false : true);
+  const [avisoGeo, setAvisoGeo] = useState('');
+  const [buscandoGeo, setBuscandoGeo] = useState(false);
   const [slugEditado, setSlugEditado] = useState(false);
   const [erro, setErro] = useState('');
   const [ok, setOk] = useState('');
@@ -66,6 +73,9 @@ export default function MinhaLoja() {
       tempo_estimado: f.tempo_estimado.trim() || null,
       logo_url: f.logo_url || null,
       capa_url: f.capa_url || null,
+      lat: ponto?.lat ?? null,
+      lng: ponto?.lng ?? null,
+      aceita_plataforma: aceitaPlataforma,
     };
 
     setSalvando(true);
@@ -86,7 +96,44 @@ export default function MinhaLoja() {
     else setOk('Dados salvos.');
   }
 
+  function daLocalizacaoAtual() {
+    setAvisoGeo('');
+    if (!('geolocation' in navigator)) return setAvisoGeo('Este aparelho não permite pegar a localização.');
+    setBuscandoGeo(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setBuscandoGeo(false);
+        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (!noBrasil(p.lat, p.lng)) return setAvisoGeo('A localização pegada parece fora do Brasil. Marque o ponto no mapa.');
+        setPonto(p);
+        setAvisoGeo('Localização marcada. Se precisar, toque no mapa para ajustar o ponto.');
+      },
+      () => {
+        setBuscandoGeo(false);
+        setAvisoGeo('Não consegui pegar a localização. Use a busca pelo endereço ou toque no mapa.');
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
+  async function doEndereco() {
+    setAvisoGeo('');
+    const texto = [f.endereco, f.bairro, f.cidade, 'Brasil'].filter((x) => x && x.trim()).join(', ');
+    setBuscandoGeo(true);
+    try {
+      const r = await api(`/api/geo?q=${encodeURIComponent(texto)}`);
+      setPonto({ lat: r.lat, lng: r.lng });
+      setAvisoGeo('Encontrei o endereço. Confira no mapa e toque para ajustar, se precisar.');
+    } catch (e) {
+      setAvisoGeo(e.message);
+    }
+    setBuscandoGeo(false);
+  }
+
   const taxa = f.taxa_entrega.trim() ? parseValor(f.taxa_entrega) : 0;
+  const mensagemConvite = loja
+    ? `Quer fazer entregas para a ${loja.nome}? Entre em ${SITE.url}/entregador e use o código ${loja.codigo_entregador}.`
+    : '';
 
   return (
     <>
@@ -173,6 +220,57 @@ export default function MinhaLoja() {
           <label htmlFor="tempo">Tempo de entrega</label>
           <input id="tempo" className="input" maxLength={20} placeholder="40-60 min" value={f.tempo_estimado} onChange={campo('tempo_estimado')} />
         </div>
+
+        <fieldset className="campo" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend style={{ fontWeight: 700, marginBottom: 6 }}>Localização da loja no mapa</legend>
+          <small className="muted">É daqui que o entregador retira o pedido e que o cliente vê a loja no mapa.</small>
+          <div className="opcoes" style={{ margin: '8px 0' }}>
+            <button type="button" className="btn btn-pequeno" onClick={daLocalizacaoAtual} disabled={buscandoGeo}>
+              📍 Estou na loja agora
+            </button>
+            <button type="button" className="btn btn-pequeno" onClick={doEndereco} disabled={buscandoGeo || f.endereco.trim().length < 3}>
+              🔎 Achar pelo endereço
+            </button>
+          </div>
+          {avisoGeo && (
+            <small role="status" style={{ display: 'block', marginBottom: 8 }}>
+              {avisoGeo}
+            </small>
+          )}
+          {ponto && (
+            <Mapa
+              pontos={[{ id: 'loja', tipo: 'loja', lat: ponto.lat, lng: ponto.lng, rotulo: f.nome || 'Sua loja' }]}
+              altura={220}
+              aoClicar={(lat, lng) => setPonto({ lat, lng })}
+              rotuloMapa="Localização da loja. Toque para mudar o ponto."
+            />
+          )}
+        </fieldset>
+
+        <fieldset className="campo" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend style={{ fontWeight: 700, marginBottom: 6 }}>Entregadores</legend>
+          <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <input type="checkbox" checked={aceitaPlataforma} onChange={(e) => setAceitaPlataforma(e.target.checked)} style={{ marginTop: 4 }} />
+            <span>
+              Aceitar também entregadores da plataforma
+              <small className="muted" style={{ display: 'block' }}>
+                Quando você chama um entregador, os seus próprios e os aprovados da plataforma podem aceitar. Desmarque para só os seus.
+              </small>
+            </span>
+          </label>
+          {!nova && (
+            <div className="entrega-info" style={{ marginTop: 10 }}>
+              <span>
+                Código dos seus entregadores: <strong>{loja.codigo_entregador || '(rode o SQL 04)'}</strong>
+              </span>
+              {loja.codigo_entregador && (
+                <a href={`https://wa.me/?text=${encodeURIComponent(mensagemConvite)}`} target="_blank" rel="noopener noreferrer">
+                  Convidar pelo WhatsApp
+                </a>
+              )}
+            </div>
+          )}
+        </fieldset>
 
         {erro && (
           <div className="aviso aviso-erro" role="alert">

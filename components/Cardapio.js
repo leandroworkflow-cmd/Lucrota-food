@@ -37,6 +37,9 @@ export default function Cardapio({ loja, produtos }) {
   const [troco, setTroco] = useState('');
   const [observacao, setObservacao] = useState('');
   const [isca, setIsca] = useState('');
+  const [local, setLocal] = useState(null); // { lat, lng } do GPS do cliente (opcional)
+  const [buscandoLocal, setBuscandoLocal] = useState(false);
+  const [avisoLocal, setAvisoLocal] = useState('');
   const botaoFechar = useRef(null);
 
   useEffect(() => {
@@ -89,6 +92,23 @@ export default function Cardapio({ loja, produtos }) {
 
   const campo = (nome) => (e) => setCliente((c) => ({ ...c, [nome]: e.target.value }));
 
+  function usarMinhaLocalizacao() {
+    setAvisoLocal('');
+    if (!('geolocation' in navigator)) return setAvisoLocal('Este aparelho não permite pegar a localização.');
+    setBuscandoLocal(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocal({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setBuscandoLocal(false);
+      },
+      () => {
+        setBuscandoLocal(false);
+        setAvisoLocal('Não consegui pegar a localização. Você pode continuar só com o endereço.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  }
+
   async function enviar(ev) {
     ev.preventDefault();
     setErro('');
@@ -104,6 +124,8 @@ export default function Cardapio({ loja, produtos }) {
         body: JSON.stringify({
           slug: loja.slug,
           itens: linhas.map((l) => ({ id: l.id, qtd: l.qtd })),
+          lat: local?.lat ?? null,
+          lng: local?.lng ?? null,
           cliente,
           forma,
           troco: forma === 'dinheiro' && troco.trim() ? parseValor(troco) : null,
@@ -275,6 +297,15 @@ export default function Cardapio({ loja, produtos }) {
                   <label htmlFor="comp">Complemento</label>
                   <input id="comp" className="input" value={cliente.complemento} onChange={campo('complemento')} />
                 </div>
+              </div>
+              <div>
+                <button type="button" className="btn btn-pequeno" onClick={usarMinhaLocalizacao} disabled={buscandoLocal}>
+                  {buscandoLocal ? 'Buscando…' : local ? '📍 Localização marcada' : '📍 Usar minha localização'}
+                </button>
+                <small style={{ display: 'block', marginTop: 6 }} className="muted">
+                  {local ? 'O entregador vai direto ao ponto marcado.' : 'Ajuda o entregador a achar você mais rápido. É opcional.'}
+                </small>
+                {avisoLocal && <small role="alert">{avisoLocal}</small>}
               </div>
             </section>
 

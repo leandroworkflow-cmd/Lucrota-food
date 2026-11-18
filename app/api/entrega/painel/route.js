@@ -1,0 +1,64 @@
+import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
+import { entregadorDaRequisicao, erro } from '../../../../lib/entrega-servidor';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const LOJA = 'nome,endereco,bairro,cidade,whatsapp,lat,lng,aceita_plataforma';
+
+// Tudo que a tela do entregador precisa: perfil, entregas em andamento e corridas disponíveis.
+export async function GET(request) {
+  const c = await entregadorDaRequisicao(request);
+  if (c.resposta) return c.resposta;
+  const { admin, ent } = c;
+
+  const { data: ativas, error: e1 } = await admin
+    .from('dl_pedidos')
+    .select(
+      `id,numero,status,loja_id,cliente_nome,cliente_telefone,endereco,bairro,complemento,observacao,forma_pagamento,troco_para,total,taxa_entrega,destino_lat,destino_lng,dl_lojas(${LOJA})`
+    )
+    .eq('entregador_id', ent.id)
+    .in('status', ['aceito', 'preparo', 'saiu'])
+    .order('criado_em');
+  if (e1) return erro('Não consegui consultar agora.', 502);
+
+  let disponiveis = [];
+  if (ent.online && (ativas || []).length < MAX_ENTREGAS_ATIVAS) {
+    let q = admin
+      .from('dl_pedidos')
+      .select(`id,numero,status,loja_id,bairro,taxa_entrega,forma_pagamento,total,entrega,entregador_id,dl_lojas(${LOJA})`)
+      .eq('entrega', 'procurando')
+      .is('entregador_id', null)
+      .in('status', ['aceito', 'preparo'])
+      .order('criado_em')
+      .limit(30);
+    if (ent.loja_id) q = q.eq('loja_id', ent.loja_id);
+    const { data, error: e2 } = await q;
+    if (e2) return erro('Não consegui consultar agora.', 502);
+    disponiveis = (data || [])
+      .filter((p) => entregadorPodeVer(ent, p, p.dl_lojas))
+      .map(({ entrega, entregador_id, ...p }) => p);
+  }
+
+  let lojaNome = null;
+  if (ent.loja_id) {
+    const { data } = await admin.from('dl_lojas').select('nome').eq('id', ent.loja_id).maybeSingle();
+    lojaNome = data?.nome || null;
+  }
+  return Response.json(
+    {
+      entregador: {
+        id: ent.id,
+        nome: ent.nome,
+        veiculo: ent.veiculo,
+        online: ent.online,
+        exclusivo: Boolean(ent.loja_id),
+        loja_nome: lojaNome,
+        aprovado: ent.aprovado,
+      },
+      ativas: ativas || [],
+      disponiveis,
+    },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
+}

@@ -1,3 +1,5 @@
+import { distanciaM, noBrasil } from '../../../lib/geo';
+import { geocodificar } from '../../../lib/geo-servidor';
 import { validarPedido } from '../../../lib/pedido';
 import { enviarPush, pushConfigurado } from '../../../lib/push-servidor';
 import { clienteServico } from '../../../lib/servidor';
@@ -40,7 +42,7 @@ export async function POST(request) {
   const slug = String(body?.slug || '');
   const { data: loja, error: eLoja } = await admin
     .from('dl_lojas')
-    .select('id,dono_id,nome,ativa,aberta,pedido_minimo,taxa_entrega,comissao_pct')
+    .select('id,dono_id,nome,ativa,aberta,pedido_minimo,taxa_entrega,comissao_pct,cidade,lat,lng')
     .eq('slug', slug)
     .maybeSingle();
   if (eLoja) return erro('Não consegui enviar o pedido agora.', 502);
@@ -55,9 +57,20 @@ export async function POST(request) {
   const v = validarPedido(loja, produtos, body);
   if (v.erro) return erro(v.erro, 400);
 
+  // Onde entregar: GPS do cliente (se mandou e for plausível) ou o endereço digitado.
+  let destino = null;
+  const lat = Number(body?.lat);
+  const lng = Number(body?.lng);
+  const pertoDaLoja = (p) => !(Number.isFinite(loja.lat) && Number.isFinite(loja.lng)) || distanciaM(p, { lat: loja.lat, lng: loja.lng }) < 60000;
+  if (body?.lat != null && noBrasil(lat, lng) && pertoDaLoja({ lat, lng })) destino = { lat, lng };
+  if (!destino) {
+    const g = await geocodificar([v.pedido.endereco, v.pedido.bairro, loja.cidade, 'Brasil'].filter(Boolean).join(', '), 2500);
+    if (g && pertoDaLoja(g)) destino = { lat: g.lat, lng: g.lng };
+  }
+
   const { data: pedido, error: eIns } = await admin
     .from('dl_pedidos')
-    .insert({ loja_id: loja.id, ...v.pedido })
+    .insert({ loja_id: loja.id, ...v.pedido, destino_lat: destino?.lat ?? null, destino_lng: destino?.lng ?? null })
     .select('numero,token')
     .single();
   if (eIns) {
