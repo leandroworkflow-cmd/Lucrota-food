@@ -40,6 +40,19 @@ export async function GET(request) {
       .map(({ entrega, entregador_id, ...p }) => p);
   }
 
+  // Conta corrente: saldo e últimos lançamentos (positivo: a plataforma repassa; negativo: o entregador deve).
+  const { data: lanc } = await admin
+    .from('dl_lancamentos')
+    .select('id,tipo,valor,descricao,criado_em')
+    .eq('entregador_id', ent.id)
+    .order('criado_em', { ascending: false })
+    .limit(5000);
+  const conta = {
+    saldo: Math.round((lanc || []).reduce((t, l) => t + Number(l.valor), 0) * 100) / 100,
+    extrato: (lanc || []).slice(0, 8),
+    chave_pix: ent.chave_pix || '',
+  };
+
   let lojaNome = null;
   if (ent.loja_id) {
     const { data } = await admin.from('dl_lojas').select('nome').eq('id', ent.loja_id).maybeSingle();
@@ -56,6 +69,7 @@ export async function GET(request) {
         loja_nome: lojaNome,
         aprovado: ent.aprovado,
       },
+      conta,
       ativas: ativas || [],
       disponiveis,
     },

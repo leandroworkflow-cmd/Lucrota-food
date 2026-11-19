@@ -29,6 +29,7 @@ export default function MinhaLoja() {
     tempo_estimado: loja?.tempo_estimado || '40-60 min',
     logo_url: loja?.logo_url || '',
     capa_url: loja?.capa_url || '',
+    chave_pix: loja?.chave_pix || '',
   });
   const [ponto, setPonto] = useState(loja && Number.isFinite(loja.lat) ? { lat: loja.lat, lng: loja.lng } : null);
   const [aceitaPlataforma, setAceitaPlataforma] = useState(loja ? loja.aceita_plataforma !== false : true);
@@ -73,6 +74,7 @@ export default function MinhaLoja() {
       tempo_estimado: f.tempo_estimado.trim() || null,
       logo_url: f.logo_url || null,
       capa_url: f.capa_url || null,
+      chave_pix: f.chave_pix.trim() || null,
       lat: ponto?.lat ?? null,
       lng: ponto?.lng ?? null,
       aceita_plataforma: aceitaPlataforma,
@@ -270,6 +272,18 @@ export default function MinhaLoja() {
               )}
             </div>
           )}
+        </fieldset>
+
+        <fieldset className="campo" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend style={{ fontWeight: 700, marginBottom: 6 }}>Repasses e conta corrente</legend>
+          <small className="muted" style={{ display: 'block', marginBottom: 8 }}>
+            Pedidos pagos por <strong>Pix pelo app</strong> caem na conta da plataforma, que repassa a você o valor dos produtos menos a comissão{nova ? '' : ` de ${Number(loja.comissao_pct)}%`}.
+            Pedidos pagos em <strong>dinheiro</strong> ficam com você, e a comissão é descontada na sua conta corrente. Os dois se compensam: você vê o saldo na aba Conta.
+          </small>
+          <div className="campo">
+            <label htmlFor="chave-pix">Sua chave Pix para receber os repasses</label>
+            <input id="chave-pix" className="input" maxLength={140} placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória" value={f.chave_pix} onChange={campo('chave_pix')} />
+          </div>
         </fieldset>
 
         {erro && (

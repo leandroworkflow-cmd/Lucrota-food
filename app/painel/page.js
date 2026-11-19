@@ -73,7 +73,7 @@ function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
       </ul>
       {p.observacao && <div className="aviso">Obs.: {p.observacao}</div>}
       <div className="pedido-meta">
-        {FORMAS[p.forma_pagamento]}
+        {p.forma_pagamento === 'pix_app' ? '✅ Pix pago pelo app (não cobrar na entrega)' : FORMAS[p.forma_pagamento]}
         {p.forma_pagamento === 'dinheiro' && p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}
       </div>
       <div className="pedido-topo">
@@ -150,8 +150,9 @@ export default function Pedidos() {
     const desde = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
     const { data, error } = await supabase
       .from('dl_pedidos')
-      .select('*')
+      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status')
       .eq('loja_id', loja.id)
+      .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado)')
       .gte('criado_em', desde)
       .order('criado_em', { ascending: false })
       .limit(200);

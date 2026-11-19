@@ -15,7 +15,7 @@ const ABAS = [
   ['/painel', 'Pedidos'],
   ['/painel/cardapio', 'Cardápio'],
   ['/painel/loja', 'Minha loja'],
-  ['/painel/financeiro', 'Comissão'],
+  ['/painel/financeiro', 'Conta'],
 ];
 
 export default function PainelShell({ children }) {

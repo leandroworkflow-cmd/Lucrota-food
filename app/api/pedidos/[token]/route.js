@@ -1,3 +1,4 @@
+import { sincronizarPagamento } from '../../../../lib/pagamento-servidor';
 import { clienteServico } from '../../../../lib/servidor';
 
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ export async function GET(_request, { params }) {
   const { data, error } = await admin
     .from('dl_pedidos')
     .select(
-      'numero,status,itens,subtotal,taxa_entrega,total,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
+      'id,loja_id,numero,status,itens,subtotal,taxa_entrega,total,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,pagamento_status,mp_payment_id,pix_copia_cola,pix_qr_base64,pix_expira_em,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
     )
     .eq('token', token)
     .maybeSingle();
@@ -23,7 +24,18 @@ export async function GET(_request, { params }) {
   if (!data) return Response.json({ error: 'Pedido não encontrado.' }, { status: 404 });
 
   // Entregador: nome, veículo e, só durante a entrega, a posição (some quando entrega ou cancela).
-  const { entregador_id: entregadorId, ...resto } = data;
+  let pagamentoStatus = data.pagamento_status;
+  if (pagamentoStatus === 'pendente') pagamentoStatus = await sincronizarPagamento(admin, data);
+  const pagamento =
+    data.forma_pagamento === 'pix_app'
+      ? {
+          status: pagamentoStatus,
+          ...(pagamentoStatus === 'pendente' ? { copia_cola: data.pix_copia_cola, qr_base64: data.pix_qr_base64, expira_em: data.pix_expira_em } : {}),
+        }
+      : null;
+
+  // eslint-disable-next-line no-unused-vars
+  const { entregador_id: entregadorId, id, loja_id, pagamento_status, mp_payment_id, pix_copia_cola, pix_qr_base64, pix_expira_em, ...resto } = data;
   let entregador = null;
   if (entregadorId && ['aceito', 'preparo', 'saiu'].includes(data.status)) {
     const { data: e } = await admin.from('dl_entregadores').select('nome,veiculo').eq('id', entregadorId).maybeSingle();
@@ -35,5 +47,5 @@ export async function GET(_request, { params }) {
       }
     }
   }
-  return Response.json({ ...resto, entregador }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ ...resto, entregador, pagamento }, { headers: { 'Cache-Control': 'no-store' } });
 }

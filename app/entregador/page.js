@@ -136,7 +136,7 @@ function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
             Chamar no WhatsApp
           </a>
           <span>
-            Receber: <strong style={{ fontSize: 16 }}>{p.forma_pagamento === 'dinheiro' ? `${brl(p.total)} em dinheiro${p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}` : `${FORMAS[p.forma_pagamento]} (${brl(p.total)})`}</strong>
+            Receber: <strong style={{ fontSize: 16 }}>{p.forma_pagamento === 'pix_app' ? 'Já pago pelo app. Não cobre nada' : p.forma_pagamento === 'dinheiro' ? `${brl(p.total)} em dinheiro${p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}` : `${FORMAS[p.forma_pagamento]} (${brl(p.total)})`}</strong>
           </span>
           {p.observacao && <span className="muted">Obs.: {p.observacao}</span>}
         </div>
@@ -169,7 +169,8 @@ function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
 }
 
 function Painel({ dados, recarregar }) {
-  const { entregador: ent, ativas, disponiveis } = dados;
+  const { entregador: ent, ativas, disponiveis, conta } = dados;
+  const [chave, setChave] = useState(conta.chave_pix || '');
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
   const [posicao, setPosicao] = useState(null);
@@ -193,6 +194,11 @@ function Painel({ dados, recarregar }) {
 
   const acao = (id, a) => executar(() => api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: a } }));
   const aceitar = (id) => executar(() => api('/api/entrega/aceitar', { metodo: 'POST', corpo: { pedido_id: id } }));
+  const salvarChave = () =>
+    executar(async () => {
+      const { error } = await supabase.from('dl_entregadores').update({ chave_pix: chave.trim() || null }).eq('id', ent.id);
+      if (error) throw new Error('Não consegui salvar a chave Pix. Rode o SQL 07 no Supabase.');
+    });
   const alternarOnline = () =>
     executar(async () => {
       const { error } = await supabase.from('dl_entregadores').update({ online: !ent.online }).eq('id', ent.id);
@@ -279,6 +285,40 @@ function Painel({ dados, recarregar }) {
             {erro}
           </div>
         )}
+      </section>
+
+      <section className="cartao" aria-label="Sua conta corrente">
+        <h2>Sua conta</h2>
+        <div
+          className="entrega-info"
+          style={{ color: conta.saldo < 0 ? '#b3261e' : undefined }}
+        >
+          <span>
+            {conta.saldo < 0 ? 'Você deve à plataforma: ' : 'A receber da plataforma: '}
+            <strong>{conta.saldo < 0 ? `− ${brl(-conta.saldo)}` : brl(conta.saldo)}</strong>
+          </span>
+        </div>
+        <small className="muted">
+          Pix pelo app: a taxa de entrega é repassada a você por Pix. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
+        </small>
+        {conta.extrato.length > 0 && (
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4, fontSize: 14 }}>
+            {conta.extrato.map((l) => (
+              <li key={l.id}>
+                {l.descricao || l.tipo}: <strong>{Number(l.valor) < 0 ? `− ${brl(-Number(l.valor))}` : `+ ${brl(l.valor)}`}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="campo">
+          <label htmlFor="chave-pix-e">Sua chave Pix para receber</label>
+          <div className="opcoes">
+            <input id="chave-pix-e" className="input" maxLength={140} placeholder="CPF, e-mail, telefone ou chave aleatória" value={chave} onChange={(e) => setChave(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+            <button type="button" className="btn btn-pequeno" onClick={salvarChave} disabled={ocupado || chave.trim() === (conta.chave_pix || '')}>
+              Salvar
+            </button>
+          </div>
+        </div>
       </section>
 
       <AvisosPush

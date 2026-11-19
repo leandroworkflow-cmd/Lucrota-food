@@ -48,6 +48,29 @@ entrega não entra).
 - O limite de pedidos por IP é simples (em memória do servidor). Para mais proteção, use um serviço próprio.
 - Revise os Termos e a Política de Privacidade com um advogado antes de abrir ao público.
 
+## Pix pelo app e conta corrente
+
+**Modelo:** o Pix pelo app cai inteiro na conta Mercado Pago da plataforma, que repassa depois. Cada pedido entregue gera lançamentos na conta corrente de cada um:
+
+| Forma de pagamento | Loja | Entregador |
+|---|---|---|
+| Pix pelo app | + produtos, − comissão | + taxa de entrega, − parte da plataforma |
+| Dinheiro, Pix ou cartão na entrega | − comissão (deve à plataforma) | − parte da plataforma (deve à plataforma) |
+
+O saldo é a soma. Positivo: a plataforma repassa por Pix. Negativo: a pessoa deve à plataforma. Pix do app e dinheiro se compensam na mesma conta. "Parte da plataforma" na entrega é `comissao_entrega_pct` (começa em 0).
+
+Configuração:
+1. Rode `supabase/06-pix.sql` e depois `supabase/07-conta-corrente.sql` no Supabase, **antes de publicar**.
+2. No Vercel: `MP_ACCESS_TOKEN` (credencial de produção da sua aplicação no Mercado Pago, API de Payments) e `NEXT_PUBLIC_SITE_URL`. Redeploy.
+3. Sem `MP_ACCESS_TOKEN`, a opção "Pix pelo app" some do checkout.
+4. Acerto de contas, no SQL Editor:
+   - `select * from public.dl_saldos order by saldo;` mostra quem recebe (saldo positivo) e quem deve (negativo), com a chave Pix.
+   - Depois de fazer o Pix, zere a conta: `select public.dl_acertar('loja', 'ID-DA-LOJA');` (ou `'entregador'`).
+   - Parte da plataforma na entrega: `update public.dl_config set valor = 10 where chave = 'comissao_entrega_pct';`
+5. Desligar o Pix do app em uma loja: `update public.dl_lojas set aceita_pix_app = false where slug = 'nome-da-loja';`
+
+Cuidados: o valor pago por Pix fica na sua conta até o repasse. Cancelamentos de pedido pago devolvem o Pix ao cliente automaticamente. O pagamento só é aceito depois de conferido direto no Mercado Pago (valor e pedido).
+
 ## Avisos no celular
 
 1. Rode `supabase/05-avisos.sql` no Supabase.

@@ -1836,3 +1836,32 @@ body:has(.nav-inf) .rodape {
   font-family: var(--font-display), sans-serif;
   font-size: 20px;
 }
+
+/* ===== Pix pelo app ===== */
+.pix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.pix-qr {
+  width: min(240px, 70vw);
+  height: auto;
+  border: 8px solid #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+.pix-codigo {
+  width: 100%;
+  max-height: 84px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f1ecf8;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  text-align: left;
+  user-select: all;
+}

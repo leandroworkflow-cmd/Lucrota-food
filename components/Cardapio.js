@@ -32,7 +32,7 @@ export default function Cardapio({ loja, produtos }) {
   const [aberto, setAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
-  const [cliente, setCliente] = useState({ nome: '', telefone: '', endereco: '', bairro: '', complemento: '' });
+  const [cliente, setCliente] = useState({ nome: '', telefone: '', endereco: '', bairro: '', complemento: '', email: '' });
   const [forma, setForma] = useState('pix');
   const [troco, setTroco] = useState('');
   const [observacao, setObservacao] = useState('');
@@ -310,14 +310,23 @@ export default function Cardapio({ loja, produtos }) {
             </section>
 
             <section className="bloco">
-              <h3>Pagamento na entrega</h3>
+              <h3>Como você quer pagar</h3>
               <div className="opcoes" role="group" aria-label="Forma de pagamento">
-                {Object.entries(FORMAS).map(([id, rotulo]) => (
+                {Object.entries(FORMAS)
+                  .filter(([id]) => id !== 'pix_app' || loja.aceita_pix_app)
+                  .map(([id, rotulo]) => (
                   <button key={id} type="button" className="opcao" aria-pressed={forma === id} onClick={() => setForma(id)}>
                     {rotulo}
                   </button>
-                ))}
+                  ))}
               </div>
+              {forma === 'pix_app' && (
+                <div className="campo">
+                  <label htmlFor="email">E-mail (opcional)</label>
+                  <input id="email" className="input" type="email" autoComplete="email" placeholder="Para o comprovante do Mercado Pago" value={cliente.email} onChange={campo('email')} />
+                  <small className="muted">Ao enviar, vamos gerar o QR Code do Pix. A loja só recebe o pedido depois que você pagar.</small>
+                </div>
+              )}
               {forma === 'dinheiro' && (
                 <div className="campo">
                   <label htmlFor="troco">Troco para quanto? (opcional)</label>

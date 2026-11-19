@@ -6,6 +6,7 @@ import LogoLoja from '../../../components/LogoLoja';
 import Rodape from '../../../components/Rodape';
 import { brl } from '../../../lib/format';
 import { corDaLoja, lojaComCardapio } from '../../../lib/lojas';
+import { mpConfigurado } from '../../../lib/mp-servidor';
 import { fotoDaLoja } from '../../../lib/visual';
 import { SITE } from '../../../lib/site';
 
@@ -83,7 +84,7 @@ export default async function PaginaLoja({ params }) {
           {Number(loja.pedido_minimo) > 0 && <span className="pilula">🧾 Mínimo {brl(loja.pedido_minimo)}</span>}
         </div>
 
-        <Cardapio loja={loja} produtos={produtos} />
+        <Cardapio loja={{ ...loja, aceita_pix_app: Boolean(loja.aceita_pix_app) && mpConfigurado() }} produtos={produtos} />
       </div>
       <Rodape />
     </>

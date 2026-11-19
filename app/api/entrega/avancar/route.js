@@ -1,6 +1,7 @@
 import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { passoDaEntrega } from '../../../../lib/entrega';
+import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
 export const runtime = 'nodejs';
@@ -35,6 +36,8 @@ export async function POST(request) {
       .eq('status', 'saiu');
     if (!count) await admin.from('dl_localizacoes').delete().eq('entregador_id', ent.id);
   }
+
+  if (body.acao === 'entreguei') await registrarLancamentos(admin, pedido.id);
 
   const primeiroNome = ent.nome.split(' ')[0];
   if (body.acao === 'coletei' || body.acao === 'entreguei') {
