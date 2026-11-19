@@ -6,6 +6,9 @@ import { brl, parseValor, round2 } from '../lib/format';
 import { FORMAS } from '../lib/pedido';
 import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
+import { validarCartaoDigitado } from '../lib/cartao';
+import { tokenizarCartao } from '../lib/mp-cliente';
+import CartaoForm from './CartaoForm';
 
 const CHAVE_CLIENTE = 'dl:cliente:v1';
 
@@ -25,7 +28,7 @@ function gravar(chave, valor) {
   }
 }
 
-export default function Cardapio({ loja, produtos }) {
+export default function Cardapio({ loja, produtos, chaveMP }) {
   const router = useRouter();
   const chaveSacola = `dl:sacola:${loja.slug}`;
   const [sacola, setSacola] = useState({}); // { idProduto: qtd }
@@ -40,6 +43,7 @@ export default function Cardapio({ loja, produtos }) {
   const [local, setLocal] = useState(null); // { lat, lng } do GPS do cliente (opcional)
   const [buscandoLocal, setBuscandoLocal] = useState(false);
   const [avisoLocal, setAvisoLocal] = useState('');
+  const [cartao, setCartao] = useState({ tipo: 'credit_card', numero: '', nome: '', validade: '', cvv: '', cpf: '' });
   const botaoFechar = useRef(null);
 
   useEffect(() => {
@@ -116,8 +120,14 @@ export default function Cardapio({ loja, produtos }) {
       setErro(`O pedido mínimo desta loja é ${brl(minimo)}.`);
       return;
     }
+    let dadosCartao = null;
+    if (forma === 'cartao_app') {
+      const c = validarCartaoDigitado(cartao);
+      if (c.erro) return setErro(c.erro);
+    }
     setEnviando(true);
     try {
+      if (forma === 'cartao_app') dadosCartao = await tokenizarCartao(chaveMP, cartao);
       const res = await fetch('/api/pedidos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,6 +138,7 @@ export default function Cardapio({ loja, produtos }) {
           lng: local?.lng ?? null,
           cliente,
           forma,
+          cartao: dadosCartao,
           troco: forma === 'dinheiro' && troco.trim() ? parseValor(troco) : null,
           observacao,
           site: isca,
@@ -138,6 +149,7 @@ export default function Cardapio({ loja, produtos }) {
       gravar(CHAVE_CLIENTE, cliente);
       gravar(chaveSacola, {});
       setSacola({});
+      setCartao((c) => ({ ...c, numero: '', cvv: '' }));
       guardarPedido({ token: json.token, loja: loja.nome, em: Date.now() });
       router.push(`/pedido/${json.token}`);
     } catch (e) {
@@ -313,7 +325,7 @@ export default function Cardapio({ loja, produtos }) {
               <h3>Como você quer pagar</h3>
               <div className="opcoes" role="group" aria-label="Forma de pagamento">
                 {Object.entries(FORMAS)
-                  .filter(([id]) => id !== 'pix_app' || loja.aceita_pix_app)
+                  .filter(([id]) => (id !== 'pix_app' && id !== 'cartao_app') || (loja.aceita_pix_app && (id === 'pix_app' || chaveMP)))
                   .map(([id, rotulo]) => (
                   <button key={id} type="button" className="opcao" aria-pressed={forma === id} onClick={() => setForma(id)}>
                     {rotulo}
@@ -326,6 +338,15 @@ export default function Cardapio({ loja, produtos }) {
                   <input id="email" className="input" type="email" autoComplete="email" placeholder="Para o comprovante do Mercado Pago" value={cliente.email} onChange={campo('email')} />
                   <small className="muted">Ao enviar, vamos gerar o QR Code do Pix. A loja só recebe o pedido depois que você pagar.</small>
                 </div>
+              )}
+              {forma === 'cartao_app' && (
+                <>
+                  <CartaoForm valor={cartao} onChange={setCartao} />
+                  <div className="campo">
+                    <label htmlFor="email">E-mail (opcional)</label>
+                    <input id="email" className="input" type="email" autoComplete="email" placeholder="Para o comprovante do Mercado Pago" value={cliente.email} onChange={campo('email')} />
+                  </div>
+                </>
               )}
               {forma === 'dinheiro' && (
                 <div className="campo">
@@ -367,7 +388,7 @@ export default function Cardapio({ loja, produtos }) {
             )}
 
             <button type="submit" className="btn btn-primario btn-bloco" disabled={enviando || linhas.length === 0 || faltaMinimo || !loja.aberta}>
-              {enviando ? 'Enviando…' : `Enviar pedido de ${brl(total)}`}
+              {enviando ? (forma === 'cartao_app' ? 'Processando pagamento…' : 'Enviando…') : forma === 'cartao_app' ? `Pagar ${brl(total)} no cartão` : `Enviar pedido de ${brl(total)}`}
             </button>
           </form>
         </div>

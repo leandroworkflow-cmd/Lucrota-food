@@ -41,16 +41,19 @@ export default function Acompanhar() {
   }, [carregar]);
 
   const pg = pedido?.pagamento;
-  const pixPendente = pg?.status === 'pendente';
-  const pixMorto = pg && ['expirado', 'reembolsado'].includes(pg.status);
+  const cartao = pg?.forma === 'cartao_app';
+  const pixPendente = pg?.status === 'pendente' && !cartao;
+  const cartaoAnalise = pg?.status === 'pendente' && cartao;
+  const pixMorto = pg && ['expirado', 'reembolsado', 'recusado'].includes(pg.status);
+  const aguardando = pixPendente || cartaoAnalise;
   const final = pedido && (pedido.status === 'entregue' || pedido.status === 'cancelado' || pixMorto);
   useEffect(() => {
     if (final) return undefined;
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') carregar();
-    }, pixPendente ? 4000 : pedido?.status === 'saiu' ? 5000 : 10000);
+    }, aguardando ? 4000 : pedido?.status === 'saiu' ? 5000 : 10000);
     return () => clearInterval(id);
-  }, [final, carregar, pedido?.status, pixPendente]);
+  }, [final, carregar, pedido?.status, aguardando]);
 
   const loja = pedido?.dl_lojas;
   const indice = pedido ? ETAPAS.findIndex(([id]) => id === pedido.status) : -1;
@@ -83,6 +86,16 @@ export default function Acompanhar() {
             </div>
 
             {pixPendente && <PixPagamento pagamento={pg} total={pedido.total} />}
+            {cartaoAnalise && (
+              <div className="aviso" role="status">
+                Estamos confirmando o pagamento no cartão. Pode levar alguns minutos. Esta tela atualiza sozinha e a loja recebe o pedido assim que for aprovado.
+              </div>
+            )}
+            {pg?.status === 'recusado' && (
+              <div className="aviso aviso-erro" role="status">
+                O pagamento no cartão não foi aprovado e o pedido não foi enviado à loja. Volte à loja e faça um novo pedido.
+              </div>
+            )}
             {pg?.status === 'expirado' && (
               <div className="aviso aviso-erro" role="status">
                 O Pix expirou e o pedido não foi enviado à loja. Volte à loja e faça um novo pedido.
@@ -90,16 +103,16 @@ export default function Acompanhar() {
             )}
             {pg?.status === 'pago' && (
               <div className="aviso" role="status">
-                ✅ Pix pago pelo app. Não precisa pagar nada na entrega.
+                ✅ {cartao ? 'Cartão' : 'Pix'} pago pelo app. Não precisa pagar nada na entrega.
               </div>
             )}
             {pg?.status === 'reembolsado' && (
               <div className="aviso" role="status">
-                O pedido foi cancelado e o seu Pix foi devolvido. O dinheiro volta para a sua conta pelo Mercado Pago.
+                O pedido foi cancelado e o seu pagamento foi devolvido. O dinheiro volta {cartao ? 'para a fatura do cartão' : 'para a sua conta'} pelo Mercado Pago.
               </div>
             )}
 
-            {pixPendente || pixMorto ? null : pedido.status === 'cancelado' ? (
+            {aguardando || pixMorto ? null : pedido.status === 'cancelado' ? (
               <div className="aviso aviso-erro" role="status">
                 A loja cancelou este pedido. Fale com ela pelo WhatsApp para entender o motivo.
               </div>

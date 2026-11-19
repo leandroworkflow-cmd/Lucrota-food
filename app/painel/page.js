@@ -73,7 +73,7 @@ function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
       </ul>
       {p.observacao && <div className="aviso">Obs.: {p.observacao}</div>}
       <div className="pedido-meta">
-        {p.forma_pagamento === 'pix_app' ? '✅ Pix pago pelo app (não cobrar na entrega)' : FORMAS[p.forma_pagamento]}
+        {p.forma_pagamento === 'pix_app' || p.forma_pagamento === 'cartao_app' ? `✅ ${p.forma_pagamento === 'pix_app' ? 'Pix' : 'Cartão'} pago pelo app (não cobrar na entrega)` : FORMAS[p.forma_pagamento]}
         {p.forma_pagamento === 'dinheiro' && p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}
       </div>
       <div className="pedido-topo">

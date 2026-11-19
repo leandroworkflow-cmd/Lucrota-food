@@ -435,3 +435,15 @@ revoke all on function public.dl_acertar(text, uuid, text) from public, anon, au
 -- select * from public.dl_saldos order by saldo;                       -- quem recebe e quem deve
 -- select public.dl_acertar('loja', '00000000-0000-0000-0000-000000000000');
 -- update public.dl_config set valor = 10 where chave = 'comissao_entrega_pct';   -- % que a plataforma retém da taxa de entrega
+
+
+-- ===== 08-cartao.sql =====
+-- A taxa do cartão do Mercado Pago é paga pela plataforma: não aparece em nenhuma conta corrente.
+
+alter table public.dl_pedidos drop constraint if exists dl_pedidos_forma_pagamento_check;
+alter table public.dl_pedidos add constraint dl_pedidos_forma_pagamento_check
+  check (forma_pagamento in ('pix', 'dinheiro', 'cartao', 'pix_app', 'cartao_app'));
+
+alter table public.dl_pedidos drop constraint if exists dl_pedidos_pagamento_status_check;
+alter table public.dl_pedidos add constraint dl_pedidos_pagamento_status_check
+  check (pagamento_status in ('pendente', 'pago', 'expirado', 'reembolsado', 'recusado'));

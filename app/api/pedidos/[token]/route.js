@@ -1,3 +1,4 @@
+import { formaOnline } from '../../../../lib/cartao';
 import { sincronizarPagamento } from '../../../../lib/pagamento-servidor';
 import { clienteServico } from '../../../../lib/servidor';
 
@@ -27,10 +28,11 @@ export async function GET(_request, { params }) {
   let pagamentoStatus = data.pagamento_status;
   if (pagamentoStatus === 'pendente') pagamentoStatus = await sincronizarPagamento(admin, data);
   const pagamento =
-    data.forma_pagamento === 'pix_app'
+    formaOnline(data.forma_pagamento)
       ? {
           status: pagamentoStatus,
-          ...(pagamentoStatus === 'pendente' ? { copia_cola: data.pix_copia_cola, qr_base64: data.pix_qr_base64, expira_em: data.pix_expira_em } : {}),
+          forma: data.forma_pagamento,
+          ...(pagamentoStatus === 'pendente' && data.forma_pagamento === 'pix_app' ? { copia_cola: data.pix_copia_cola, qr_base64: data.pix_qr_base64, expira_em: data.pix_expira_em } : {}),
         }
       : null;
 

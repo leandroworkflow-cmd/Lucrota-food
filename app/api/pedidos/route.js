@@ -1,9 +1,11 @@
 import { distanciaM, noBrasil } from '../../../lib/geo';
 import { geocodificar } from '../../../lib/geo-servidor';
-import { criarPix, mpConfigurado } from '../../../lib/mp-servidor';
+import { validarEntradaCartao, mensagemRecusa } from '../../../lib/cartao';
+import { criarCartao, criarPix, mpConfigurado } from '../../../lib/mp-servidor';
 import { emailDoPagador, pagamentoValido } from '../../../lib/partilha';
 import { validarPedido } from '../../../lib/pedido';
 import { enviarPush, pushConfigurado } from '../../../lib/push-servidor';
+import { sincronizarPagamento } from '../../../lib/pagamento-servidor';
 import { clienteServico } from '../../../lib/servidor';
 
 export const runtime = 'nodejs';
@@ -13,16 +15,17 @@ const erro = (error, status) => Response.json({ error }, { status });
 
 // Limite simples por IP (por instância do servidor): freia quem dispara pedidos em massa.
 const recentes = new Map();
-function limitado(ip) {
+const tentativasCartao = new Map(); // mais curto: freia quem testa cartões em massa
+function limitado(ip, mapa = recentes, max = 8) {
   const agora = Date.now();
-  const lista = (recentes.get(ip) || []).filter((t) => agora - t < 10 * 60 * 1000);
-  if (lista.length >= 8) {
-    recentes.set(ip, lista);
+  const lista = (mapa.get(ip) || []).filter((t) => agora - t < 10 * 60 * 1000);
+  if (lista.length >= max) {
+    mapa.set(ip, lista);
     return true;
   }
   lista.push(agora);
-  recentes.set(ip, lista);
-  if (recentes.size > 5000) recentes.clear();
+  mapa.set(ip, lista);
+  if (mapa.size > 5000) mapa.clear();
   return false;
 }
 
@@ -56,7 +59,7 @@ export async function POST(request) {
     .eq('loja_id', loja.id);
   if (eProd) return erro('Não consegui enviar o pedido agora.', 502);
 
-  const v = validarPedido({ ...loja, aceita_pix_app: Boolean(loja.aceita_pix_app) && mpConfigurado() }, produtos, body);
+  const v = validarPedido({ ...loja, aceita_pix_app: Boolean(loja.aceita_pix_app) && mpConfigurado(), aceita_cartao_app: Boolean(loja.aceita_pix_app) && mpConfigurado() }, produtos, body);
   if (v.erro) return erro(v.erro, 400);
 
   // Onde entregar: GPS do cliente (se mandou e for plausível) ou o endereço digitado.
@@ -70,9 +73,17 @@ export async function POST(request) {
     if (g && pertoDaLoja(g)) destino = { lat: g.lat, lng: g.lng };
   }
 
+  const cartaoApp = v.pedido.forma_pagamento === 'cartao_app';
   const pixApp = v.pedido.forma_pagamento === 'pix_app';
-  if (pixApp) {
-    if (!mpConfigurado()) return erro('O Pix pelo app não está disponível agora.', 503);
+  let cartao = null;
+  if (cartaoApp) {
+    if (limitado(ip, tentativasCartao, 5)) return erro('Muitas tentativas de cartão. Aguarde alguns minutos ou pague com Pix.', 429);
+    const c = validarEntradaCartao(body?.cartao);
+    if (c.erro) return erro(c.erro, 400);
+    cartao = c.dados;
+  }
+  if (pixApp || cartaoApp) {
+    if (!mpConfigurado()) return erro('O pagamento pelo app não está disponível agora.', 503);
     if (!pagamentoValido(v.pedido.total)) return erro('Este valor não pode ser pago pelo app. Escolha outra forma de pagamento.', 400);
   }
 
@@ -83,13 +94,40 @@ export async function POST(request) {
       ...v.pedido,
       destino_lat: destino?.lat ?? null,
       destino_lng: destino?.lng ?? null,
-      ...(pixApp ? { pagamento_status: 'pendente' } : {}),
+      ...(pixApp || cartaoApp ? { pagamento_status: 'pendente' } : {}),
     })
     .select('id,numero,token')
     .single();
   if (eIns) {
     console.error('Erro ao criar pedido:', eIns.message);
     return erro('Não consegui enviar o pedido agora. Tente de novo.', 502);
+  }
+
+  if (cartaoApp) {
+    // Cobra o cartão na conta da plataforma (a taxa do cartão é da plataforma).
+    const cobranca = await criarCartao({
+      valor: v.pedido.total,
+      descricao: `Pedido ${pedido.numero} - ${loja.nome}`.slice(0, 100),
+      referencia: pedido.id,
+      email: emailDoPagador(body?.cliente?.email, pedido.numero),
+      nome: v.pedido.cliente_nome.split(' ')[0],
+      chave: pedido.token,
+      token: cartao.token,
+      metodo: cartao.metodo,
+      emissor: cartao.emissor,
+      cpf: cartao.cpf,
+    });
+    const aprovavel = !cobranca.erro && ['approved', 'in_process', 'pending'].includes(cobranca.status);
+    if (!aprovavel) {
+      await admin.from('dl_pedidos').delete().eq('id', pedido.id);
+      return erro(cobranca.erro ? 'Não consegui cobrar o cartão agora. Tente de novo ou pague com Pix.' : mensagemRecusa(cobranca.detalhe), cobranca.erro ? 502 : 402);
+    }
+    await admin
+      .from('dl_pedidos')
+      .update({ mp_payment_id: cobranca.id })
+      .eq('id', pedido.id);
+    if (cobranca.status === 'approved') await sincronizarPagamento(admin, pedido.id); // confere no Mercado Pago, marca como pago e avisa a loja
+    return Response.json({ ok: true, numero: pedido.numero, token: pedido.token });
   }
 
   if (pixApp) {

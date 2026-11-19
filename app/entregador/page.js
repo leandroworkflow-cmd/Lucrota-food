@@ -136,7 +136,7 @@ function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
             Chamar no WhatsApp
           </a>
           <span>
-            Receber: <strong style={{ fontSize: 16 }}>{p.forma_pagamento === 'pix_app' ? 'Já pago pelo app. Não cobre nada' : p.forma_pagamento === 'dinheiro' ? `${brl(p.total)} em dinheiro${p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}` : `${FORMAS[p.forma_pagamento]} (${brl(p.total)})`}</strong>
+            Receber: <strong style={{ fontSize: 16 }}>{p.forma_pagamento === 'pix_app' || p.forma_pagamento === 'cartao_app' ? 'Já pago pelo app. Não cobre nada' : p.forma_pagamento === 'dinheiro' ? `${brl(p.total)} em dinheiro${p.troco_para ? `, troco para ${brl(p.troco_para)}` : ''}` : `${FORMAS[p.forma_pagamento]} (${brl(p.total)})`}</strong>
           </span>
           {p.observacao && <span className="muted">Obs.: {p.observacao}</span>}
         </div>

@@ -1,6 +1,7 @@
 import { avisoDoCliente, transicaoDaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente } from '../../../../lib/avisos-servidor';
 import { erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
+import { formaOnline } from '../../../../lib/cartao';
 import { cancelarPagamento, reembolsar } from '../../../../lib/mp-servidor';
 import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { clienteServico, usuarioDaRequisicao } from '../../../../lib/servidor';
@@ -27,19 +28,19 @@ export async function POST(request) {
   const t = transicaoDaLoja(pedido.status, body.status, Boolean(pedido.entregador_id));
   if (t.erro) return erro(t.erro, 409);
 
-  if (pedido.pagamento_status === 'pendente' && body.status !== 'cancelado') return erro('Aguarde o cliente pagar o Pix.', 409);
+  if (pedido.pagamento_status === 'pendente' && body.status !== 'cancelado') return erro('Aguarde a confirmação do pagamento do cliente.', 409);
 
   // Cancelou um pedido pago pelo app: a plataforma devolve o Pix ao cliente.
   let novoPagamento = null;
-  if (body.status === 'cancelado' && pedido.forma_pagamento === 'pix_app' && pedido.mp_payment_id) {
+  if (body.status === 'cancelado' && formaOnline(pedido.forma_pagamento) && pedido.mp_payment_id) {
     if (pedido.pagamento_status === 'pago') {
       if (!(await reembolsar(pedido.mp_payment_id))) {
-        return erro('Não consegui devolver o Pix automaticamente. Fale com a plataforma para devolver o valor ao cliente.', 502);
+        return erro('Não consegui devolver o pagamento automaticamente. Fale com a plataforma para devolver o valor ao cliente.', 502);
       }
       novoPagamento = 'reembolsado';
     } else if (pedido.pagamento_status === 'pendente') {
       await cancelarPagamento(pedido.mp_payment_id);
-      novoPagamento = 'expirado';
+      novoPagamento = pedido.forma_pagamento === 'cartao_app' ? 'recusado' : 'expirado';
     }
   }
 

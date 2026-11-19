@@ -95,3 +95,11 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 1. No Supabase (SQL Editor), rode `supabase/02-imagens.sql`: cria as colunas de foto e a pasta pública `dl-imagens`.
 2. Troque `SEU_EMAIL_DO_GOOGLE@gmail.com` em `supabase/03-loja-exemplo.sql` pelo seu e-mail e rode: cria a "Lanchonete Exemplo" já liberada.
 3. No painel (Minha loja e Cardápio) o lojista envia logo, capa e foto de cada item. A foto é reduzida no celular antes do envio.
+
+## Cartão pelo app (crédito e débito, à vista)
+1. Rode `supabase/08-cartao.sql` (depois do 07).
+2. No Vercel, adicione `NEXT_PUBLIC_MP_PUBLIC_KEY` (a **Public Key** de produção, em Credenciais da sua aplicação no Mercado Pago). Redeploy.
+3. Sem essa chave, a opção "Cartão pelo app" some; o Pix continua funcionando.
+- O número do cartão vai direto do navegador ao Mercado Pago (vira um token); nosso servidor nunca o vê.
+- A taxa do cartão é da plataforma: loja e entregador recebem na conta corrente igual ao Pix.
+- Recusado: o pedido não é criado e o cliente vê o motivo. Em análise: o pedido espera a confirmação. Cancelar pedido pago devolve o valor na fatura.
