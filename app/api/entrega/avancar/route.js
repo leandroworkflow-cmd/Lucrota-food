@@ -1,5 +1,6 @@
 import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
+import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
 import { chegadaValida, passoDaEntrega } from '../../../../lib/entrega';
 import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
@@ -62,6 +63,8 @@ export async function POST(request) {
       url: '/painel',
       tag: `entrega-${pedido.numero}`,
     });
+    // A corrida volta para a fila: avisa de novo os entregadores disponíveis (menos quem acabou de desistir).
+    await avisarCorridaDisponivel(admin, pedido.id, { reaberta: true, exceto: ent.id });
   }
   if (body.acao === 'coletei' || body.acao === 'entreguei') {
     const status = body.acao === 'coletei' ? 'saiu' : 'entregue';

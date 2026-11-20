@@ -138,3 +138,7 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 - O cliente vê a taxa antes de confirmar; se ela mudar enquanto a tela está aberta, o servidor pede nova confirmação.
 - Se o reembolso falhar, o cancelamento é desfeito (o pedido não fica cancelado com o dinheiro retido).
 - Loja e entregador recebem aviso; a taxa entra na conta corrente (tipo "taxa_cancelamento").
+
+## Entregador desistiu: corrida reaberta
+- Se o entregador desiste antes de pegar o pedido, a corrida volta para a fila e os entregadores disponíveis recebem um aviso "Corrida reaberta" (menos quem desistiu). A loja também é avisada.
+- Na lista de corridas disponíveis, cada corrida mostra a distância e o tempo estimado até a loja, e a mais perto vem primeiro. A posição do entregador é usada só na tela dele para esse cálculo; não é enviada nem guardada.

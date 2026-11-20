@@ -1,6 +1,5 @@
-import { avisoCorridaNova } from '../../../../lib/avisos-texto';
-import { avisarUsuarios } from '../../../../lib/avisos-servidor';
-import { chamadaDaLoja, entregadorPodeVer } from '../../../../lib/entrega';
+import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
+import { chamadaDaLoja } from '../../../../lib/entrega';
 import { erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 import { clienteServico, usuarioDaRequisicao } from '../../../../lib/servidor';
 
@@ -28,21 +27,6 @@ export async function POST(request) {
   const { error } = await admin.from('dl_pedidos').update(passo.dados).eq('id', pedido.id);
   if (error) return erro('Não consegui atualizar agora. Tente de novo.', 502);
 
-  if (!body.cancelar) {
-    // Avisa só quem pode pegar essa corrida: entregadores online da loja e, se ela aceita, os aprovados da plataforma.
-    const { data: lista } = await admin
-      .from('dl_entregadores')
-      .select('id,user_id,online,loja_id,aprovado')
-      .eq('online', true)
-      .or(`loja_id.eq.${pedido.loja_id},and(loja_id.is.null,aprovado.eq.true)`)
-      .limit(50);
-    const alvo = { ...pedido, ...passo.dados };
-    const ids = (lista || []).filter((e) => entregadorPodeVer(e, alvo, pedido.dl_lojas)).map((e) => e.user_id);
-    await avisarUsuarios(admin, ids, {
-      ...avisoCorridaNova({ lojaNome: pedido.dl_lojas?.nome, bairro: pedido.bairro, taxa: pedido.taxa_entrega }),
-      url: '/entregador',
-      tag: 'corrida',
-    });
-  }
+  if (!body.cancelar) await avisarCorridaDisponivel(admin, pedido.id);
   return Response.json({ ok: true });
 }

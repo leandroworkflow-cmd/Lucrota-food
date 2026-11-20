@@ -6,10 +6,10 @@ import Mapa from '../../components/Mapa';
 import Marca from '../../components/Marca';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
-import { VEICULOS } from '../../lib/entrega';
+import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
 import { brl } from '../../lib/format';
 import { FORMAS } from '../../lib/pedido';
-import { linkGoogleMaps, linkWaze } from '../../lib/geo';
+import { linkGoogleMaps, linkWaze, textoDistancia, textoTempo } from '../../lib/geo';
 import { supabase } from '../../lib/supabase';
 
 function Cabecalho({ onSair }) {
@@ -188,6 +188,8 @@ function Painel({ dados, recarregar }) {
   const [posicao, setPosicao] = useState(null);
   const [gpsErro, setGpsErro] = useState('');
   const ultimoEnvio = useRef(0);
+  const [minhaPos, setMinhaPos] = useState(null); // só no aparelho: serve para mostrar a distância até a loja, não é enviada ao servidor
+  const [semGps, setSemGps] = useState(false);
 
   const levando = ativas.some((p) => p.status === 'saiu');
 
@@ -225,6 +227,30 @@ function Painel({ dados, recarregar }) {
       const { error } = await supabase.from('dl_entregadores').update({ online: !ent.online }).eq('id', ent.id);
       if (error) throw new Error('Não consegui mudar seu status.');
     });
+
+  // Distância até a loja das corridas disponíveis: usa o GPS só para calcular aqui na tela.
+  const temCorridas = ent.online && disponiveis.length > 0;
+  useEffect(() => {
+    if (!temCorridas || !('geolocation' in navigator)) return undefined;
+    let vivo = true;
+    const ler = () =>
+      navigator.geolocation.getCurrentPosition(
+        (r) => {
+          if (!vivo) return;
+          setMinhaPos({ lat: r.coords.latitude, lng: r.coords.longitude });
+          setSemGps(false);
+        },
+        () => vivo && setSemGps(true),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+      );
+    ler();
+    const id = setInterval(ler, 30000);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+    };
+  }, [temCorridas]);
+  const corridas = corridasPorDistancia(disponiveis, minhaPos);
 
   // GPS: só compartilha a localização enquanto você está com um pedido na mão.
   useEffect(() => {
@@ -356,12 +382,17 @@ function Painel({ dados, recarregar }) {
       {ent.online && !semAprovacao && (
         <section className="cartao" aria-label="Corridas disponíveis">
           <h2>Corridas disponíveis</h2>
+          {semGps && disponiveis.length > 0 && (
+            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+              Libere o GPS do navegador para ver a distância até a loja. Sua localização não é enviada: ela só é usada nesta tela.
+            </p>
+          )}
           {disponiveis.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>
               Nenhuma corrida agora. Esta tela atualiza sozinha.
             </p>
           ) : (
-            disponiveis.map((p) => (
+            corridas.map((p) => (
               <div key={p.id} className="produto-linha">
                 <div>
                   <strong>
@@ -372,6 +403,11 @@ function Painel({ dados, recarregar }) {
                     <br />
                     Entregar no bairro: {p.bairro || 'informado após aceitar'}
                   </div>
+                  {p.distancia_m != null && (
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>
+                      🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá
+                    </div>
+                  )}
                 </div>
                 <strong>{brl(p.taxa_entrega)}</strong>
                 <div className="opcoes" style={{ gridColumn: '1 / -1' }}>
