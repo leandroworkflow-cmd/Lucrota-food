@@ -126,3 +126,15 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 - O servidor confere pelo GPS que o entregador está a até 300 m da loja (se a loja tem localização e o celular libera o GPS; senão, não bloqueia).
 - Para o alarme tocar no painel, deixe **Som ligado**; o aviso no celular precisa de **Avisos** ativados.
 - Se o entregador desistir, a loja é avisada de que a corrida voltou a procurar.
+
+## Cancelamento pelo cliente (com taxa)
+1. Rode `supabase/12-cancelamento.sql` (depois do 11).
+2. Regras (em `lib/cancelamento.js`: `JANELA_GRATIS_MIN`, `FIM_TAXA_MIN`, `PCT_PRODUTOS`), contadas a partir de "em preparo":
+   - Antes do preparo ou até 3 min: grátis, com devolução total.
+   - De 3 a 20 min (só pedido pago pelo app): taxa de 15% dos produtos (para a loja) + taxa de entrega se um entregador já aceitou (para o entregador). Devolve o resto por reembolso parcial no Mercado Pago. A plataforma não fica com nada.
+   - Depois de 20 min: pedido atrasado, cancela grátis (inclusive em dinheiro).
+   - Pedido em dinheiro entre 3 e 20 min: o cliente fala com a loja (não há como cobrar taxa).
+   - Pedido que já saiu: não cancela pelo app.
+- O cliente vê a taxa antes de confirmar; se ela mudar enquanto a tela está aberta, o servidor pede nova confirmação.
+- Se o reembolso falhar, o cancelamento é desfeito (o pedido não fica cancelado com o dinheiro retido).
+- Loja e entregador recebem aviso; a taxa entra na conta corrente (tipo "taxa_cancelamento").

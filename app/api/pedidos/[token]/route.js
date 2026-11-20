@@ -1,3 +1,4 @@
+import { calcularCancelamento } from '../../../../lib/cancelamento';
 import { formaOnline } from '../../../../lib/cartao';
 import { sincronizarPagamento } from '../../../../lib/pagamento-servidor';
 import { clienteServico } from '../../../../lib/servidor';
@@ -17,7 +18,7 @@ export async function GET(_request, { params }) {
   const { data, error } = await admin
     .from('dl_pedidos')
     .select(
-      'id,loja_id,numero,status,itens,subtotal,taxa_entrega,total,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,pagamento_status,mp_payment_id,pix_copia_cola,pix_qr_base64,pix_expira_em,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
+      'id,loja_id,numero,status,itens,subtotal,taxa_entrega,total,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,pagamento_status,mp_payment_id,pix_copia_cola,pix_qr_base64,pix_expira_em,preparo_em,cancelado_por,taxa_cancelamento,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
     )
     .eq('token', token)
     .maybeSingle();
@@ -37,7 +38,7 @@ export async function GET(_request, { params }) {
       : null;
 
   // eslint-disable-next-line no-unused-vars
-  const { entregador_id: entregadorId, id, loja_id, pagamento_status, mp_payment_id, pix_copia_cola, pix_qr_base64, pix_expira_em, ...resto } = data;
+  const { entregador_id: entregadorId, id, loja_id, pagamento_status, mp_payment_id, pix_copia_cola, pix_qr_base64, pix_expira_em, preparo_em, ...resto } = data;
   let entregador = null;
   if (entregadorId && ['aceito', 'preparo', 'saiu'].includes(data.status)) {
     const { data: e } = await admin.from('dl_entregadores').select('nome,veiculo').eq('id', entregadorId).maybeSingle();
@@ -49,5 +50,6 @@ export async function GET(_request, { params }) {
       }
     }
   }
-  return Response.json({ ...resto, entregador, pagamento }, { headers: { 'Cache-Control': 'no-store' } });
+  const cancelamento = calcularCancelamento({ ...data, pagamento_status: pagamentoStatus, preparo_em: preparo_em || data.atualizado_em });
+  return Response.json({ ...resto, entregador, pagamento, cancelamento }, { headers: { 'Cache-Control': 'no-store' } });
 }

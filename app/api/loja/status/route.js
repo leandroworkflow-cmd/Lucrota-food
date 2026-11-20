@@ -47,7 +47,13 @@ export async function POST(request) {
   const agora = new Date().toISOString();
   const { error } = await admin
     .from('dl_pedidos')
-    .update({ status: body.status, atualizado_em: agora, ...(novoPagamento ? { pagamento_status: novoPagamento } : {}) })
+    .update({
+      status: body.status,
+      atualizado_em: agora,
+      ...(body.status === 'preparo' ? { preparo_em: agora } : {}),
+      ...(body.status === 'cancelado' ? { cancelado_por: 'loja' } : {}),
+      ...(novoPagamento ? { pagamento_status: novoPagamento } : {}),
+    })
     .eq('id', pedido.id)
     .eq('status', pedido.status);
   if (error) return erro('Não consegui mudar o status. Tente de novo.', 502);

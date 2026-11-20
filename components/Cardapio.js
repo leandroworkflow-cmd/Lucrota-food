@@ -6,6 +6,7 @@ import { brl, parseValor, round2 } from '../lib/format';
 import { FORMAS, FORMAS_ATIVAS } from '../lib/pedido';
 import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
+import { FIM_TAXA_MIN, JANELA_GRATIS_MIN, PCT_PRODUTOS } from '../lib/cancelamento';
 import { validarCartaoDigitado } from '../lib/cartao';
 import { api } from '../lib/api-cliente';
 import { entrarComGoogle, useSession } from '../lib/auth';
@@ -481,6 +482,9 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
               </div>
             )}
 
+            <small className="muted">
+              Cancelamento grátis até {JANELA_GRATIS_MIN} minutos depois de a loja começar o preparo. De {JANELA_GRATIS_MIN} a {FIM_TAXA_MIN} minutos, pedidos pagos pelo app têm taxa de {PCT_PRODUTOS}% dos produtos (mais a entrega, se um entregador já aceitou). Passando de {FIM_TAXA_MIN} minutos, o pedido está atrasado e você cancela sem taxa.
+            </small>
             <button type="submit" className="btn btn-primario btn-bloco" disabled={enviando || linhas.length === 0 || faltaMinimo || !loja.aberta}>
               {enviando ? (forma === 'cartao_app' ? 'Processando pagamento…' : 'Enviando…') : forma === 'cartao_app' ? `Pagar ${brl(total)} no cartão` : `Enviar pedido de ${brl(total)}`}
             </button>

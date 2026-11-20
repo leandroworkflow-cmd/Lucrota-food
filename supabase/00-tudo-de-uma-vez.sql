@@ -506,3 +506,17 @@ create index if not exists dl_pedidos_cliente_idx on public.dl_pedidos (cliente_
 alter table public.dl_pedidos add column if not exists chegou_loja_em timestamptz;   -- quando o entregador tocou em "Cheguei na loja"
 alter table public.dl_pedidos add column if not exists entregador_nome text;          -- primeiro nome, para a loja ver quem vem buscar
 alter table public.dl_pedidos add column if not exists entregador_veiculo text;
+
+
+-- ===== 12-cancelamento.sql =====
+alter table public.dl_pedidos add column if not exists preparo_em timestamptz;          -- quando a loja marcou "em preparo" (começa a janela grátis de 3 minutos)
+alter table public.dl_pedidos add column if not exists cancelado_por text check (cancelado_por in ('cliente', 'loja'));
+alter table public.dl_pedidos add column if not exists taxa_cancelamento numeric not null default 0;
+
+alter table public.dl_pedidos drop constraint if exists dl_pedidos_pagamento_status_check;
+alter table public.dl_pedidos add constraint dl_pedidos_pagamento_status_check
+  check (pagamento_status in ('pendente', 'pago', 'expirado', 'reembolsado', 'recusado', 'reembolsado_parcial', 'cancelado'));
+
+alter table public.dl_lancamentos drop constraint if exists dl_lancamentos_tipo_check;
+alter table public.dl_lancamentos add constraint dl_lancamentos_tipo_check
+  check (tipo in ('venda_pix', 'comissao', 'entrega_pix', 'comissao_entrega', 'acerto', 'taxa_cancelamento'));

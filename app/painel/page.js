@@ -5,6 +5,7 @@ import NotificacoesLoja from '../../components/NotificacoesLoja';
 import { usePainel } from '../../components/PainelShell';
 import { api } from '../../lib/api-cliente';
 import { brl, formatarTelefone, hora, linkWhatsApp } from '../../lib/format';
+import { PCT_PRODUTOS } from '../../lib/cancelamento';
 import { VEICULOS } from '../../lib/entrega';
 import { ACAO, FORMAS, PROXIMO, STATUS } from '../../lib/pedido';
 import { supabase } from '../../lib/supabase';
@@ -85,6 +86,11 @@ function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
           </li>
         ))}
       </ul>
+      {p.status === 'cancelado' && p.cancelado_por === 'cliente' && (
+        <div className="aviso">
+          Cancelado pelo cliente.{Number(p.taxa_cancelamento) > 0 ? ` Taxa de cancelamento: ${brl(Math.round(Number(p.subtotal) * PCT_PRODUTOS) / 100)} entra na sua conta.` : ' Sem taxa.'}
+        </div>
+      )}
       {p.observacao && <div className="aviso">Obs.: {p.observacao}</div>}
       <div className="pedido-meta">
         {p.forma_pagamento === 'pix_app' || p.forma_pagamento === 'cartao_app' ? `✅ ${p.forma_pagamento === 'pix_app' ? 'Pix' : 'Cartão'} pago pelo app (não cobrar na entrega)` : FORMAS[p.forma_pagamento]}
@@ -169,9 +175,9 @@ export default function Pedidos() {
     const desde = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
     const { data, error } = await supabase
       .from('dl_pedidos')
-      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,entregador_nome,entregador_veiculo')
+      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,entregador_nome,entregador_veiculo,cancelado_por,taxa_cancelamento')
       .eq('loja_id', loja.id)
-      .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado)')
+      .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado,reembolsado_parcial)')
       .gte('criado_em', desde)
       .order('criado_em', { ascending: false })
       .limit(200);
