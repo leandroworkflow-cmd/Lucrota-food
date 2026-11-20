@@ -3,16 +3,29 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { brl } from '../lib/format';
+import { api } from '../lib/api-cliente';
+import { useSession } from '../lib/auth';
 import { lerPedidos } from '../lib/meus-pedidos';
 import { STATUS } from '../lib/pedido';
 
 export default function ListaPedidos() {
   const [lista, setLista] = useState(null);
+  const auth = useSession();
 
   useEffect(() => {
+    if (auth.status === 'loading') return undefined;
     let vivo = true;
     (async () => {
-      const guardados = lerPedidos();
+      let guardados = lerPedidos();
+      if (auth.status === 'in') {
+        try {
+          const { pedidos } = await api('/api/conta/pedidos');
+          const vistos = new Set(guardados.map((p) => p.token));
+          guardados = [...guardados, ...pedidos.filter((p) => !vistos.has(p.token))].sort((a, b) => b.em - a.em);
+        } catch {
+          /* segue só com os deste aparelho */
+        }
+      }
       const dados = await Promise.all(
         guardados.map(async (p) => {
           try {
@@ -28,7 +41,7 @@ export default function ListaPedidos() {
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [auth.status]);
 
   if (lista === null) return <p className="muted">Carregando…</p>;
   if (lista.length === 0) {

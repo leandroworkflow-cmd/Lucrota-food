@@ -7,7 +7,10 @@ import { FORMAS, FORMAS_ATIVAS } from '../lib/pedido';
 import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
 import { validarCartaoDigitado } from '../lib/cartao';
-import { tokenizarCartao } from '../lib/mp-cliente';
+import { api } from '../lib/api-cliente';
+import { entrarComGoogle, useSession } from '../lib/auth';
+import { montarCvv, tokenizarCartao, tokenizarSalvo } from '../lib/mp-cliente';
+import { supabase } from '../lib/supabase';
 import CartaoForm from './CartaoForm';
 
 const CHAVE_CLIENTE = 'dl:cliente:v1';
@@ -44,6 +47,10 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
   const [buscandoLocal, setBuscandoLocal] = useState(false);
   const [avisoLocal, setAvisoLocal] = useState('');
   const [cartao, setCartao] = useState({ tipo: 'credit_card', numero: '', nome: '', validade: '', cvv: '', cpf: '' });
+  const auth = useSession();
+  const [conta, setConta] = useState(null); // { perfil, cartoes } de quem está logado
+  const [cartaoEscolhido, setCartaoEscolhido] = useState('novo'); // 'novo' ou o id de um cartão salvo
+  const [salvarCartao, setSalvarCartao] = useState(true);
   const botaoFechar = useRef(null);
 
   useEffect(() => {
@@ -53,6 +60,50 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
     setSacola(validos);
     setCliente((c) => ({ ...c, ...ler(CHAVE_CLIENTE, {}) }));
   }, [chaveSacola, produtos]);
+
+  // Cliente logado: traz os dados e os cartões salvos.
+  useEffect(() => {
+    if (auth.status !== 'in') {
+      setConta(null);
+      return;
+    }
+    let vivo = true;
+    api('/api/conta')
+      .then((c) => {
+        if (!vivo) return;
+        setConta(c);
+        if (c.cartoes?.length) setCartaoEscolhido((atual) => (atual === 'novo' ? c.cartoes[0].id : atual));
+        setCliente((atual) => ({
+          ...atual,
+          nome: atual.nome || c.perfil.nome,
+          telefone: atual.telefone || c.perfil.telefone,
+          endereco: atual.endereco || c.perfil.endereco,
+          bairro: atual.bairro || c.perfil.bairro,
+          complemento: atual.complemento || c.perfil.complemento,
+          email: atual.email || c.perfil.email,
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [auth.status]);
+
+  // Campo seguro do CVV quando um cartão salvo está escolhido.
+  const usandoSalvo = forma === 'cartao_app' && cartaoEscolhido !== 'novo' && Boolean(conta?.cartoes?.length);
+  useEffect(() => {
+    if (!aberto || !usandoSalvo || !chaveMP) return undefined;
+    let remover = () => {};
+    let ativo = true;
+    montarCvv(chaveMP, 'cvv-salvo').then((r) => {
+      if (ativo) remover = r;
+      else r();
+    }).catch(() => setErro('Não consegui carregar o campo do código de segurança. Recarregue a página.'));
+    return () => {
+      ativo = false;
+      remover();
+    };
+  }, [aberto, usandoSalvo, cartaoEscolhido, chaveMP]);
 
   useEffect(() => {
     if (!aberto) return undefined;
@@ -121,16 +172,21 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
       return;
     }
     let dadosCartao = null;
-    if (forma === 'cartao_app') {
+    if (forma === 'cartao_app' && !usandoSalvo) {
       const c = validarCartaoDigitado(cartao);
       if (c.erro) return setErro(c.erro);
     }
     setEnviando(true);
     try {
-      if (forma === 'cartao_app') dadosCartao = await tokenizarCartao(chaveMP, cartao);
+      if (usandoSalvo) dadosCartao = await tokenizarSalvo(chaveMP, cartaoEscolhido);
+      else if (forma === 'cartao_app') {
+        dadosCartao = await tokenizarCartao(chaveMP, cartao);
+        if (conta && salvarCartao) dadosCartao.salvar_token = (await tokenizarCartao(chaveMP, cartao)).token; // um token só serve uma vez: este é para guardar o cartão
+      }
+      const jwt = (await supabase?.auth.getSession())?.data?.session?.access_token;
       const res = await fetch('/api/pedidos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) },
         body: JSON.stringify({
           slug: loja.slug,
           itens: linhas.map((l) => ({ id: l.id, qtd: l.qtd })),
@@ -342,7 +398,44 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
               )}
               {forma === 'cartao_app' && (
                 <>
-                  <CartaoForm valor={cartao} onChange={setCartao} />
+                  {auth.status !== 'in' && (
+                    <div className="aviso" role="note">
+                      Quer pagar com um toque nos próximos pedidos?{' '}
+                      <button type="button" className="topo-link" style={{ background: 'none', border: 0, cursor: 'pointer', font: 'inherit', fontWeight: 700, color: 'inherit', textDecoration: 'underline' }} onClick={() => entrarComGoogle(`/loja/${loja.slug}`)}>
+                        Entre com o Google
+                      </button>{' '}
+                      para salvar seu cartão e ver o histórico.
+                    </div>
+                  )}
+                  {conta?.cartoes?.length > 0 && (
+                    <div className="opcoes" role="radiogroup" aria-label="Cartão">
+                      {conta.cartoes.map((c) => (
+                        <button key={c.id} type="button" role="radio" aria-checked={cartaoEscolhido === c.id} className="opcao" aria-pressed={cartaoEscolhido === c.id} onClick={() => setCartaoEscolhido(c.id)}>
+                          {c.bandeira} •••• {c.final}
+                        </button>
+                      ))}
+                      <button type="button" role="radio" aria-checked={cartaoEscolhido === 'novo'} className="opcao" aria-pressed={cartaoEscolhido === 'novo'} onClick={() => setCartaoEscolhido('novo')}>
+                        Outro cartão
+                      </button>
+                    </div>
+                  )}
+                  {usandoSalvo ? (
+                    <div className="campo">
+                      <label>Código de segurança (CVV)</label>
+                      <div id="cvv-salvo" style={{ minHeight: 44 }} />
+                      <small className="muted">Pagamento à vista. Por segurança, o CVV é pedido a cada compra.</small>
+                    </div>
+                  ) : (
+                    <>
+                      <CartaoForm valor={cartao} onChange={setCartao} />
+                      {conta && (
+                        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                          <input type="checkbox" checked={salvarCartao} onChange={(e) => setSalvarCartao(e.target.checked)} />
+                          Salvar este cartão para os próximos pedidos
+                        </label>
+                      )}
+                    </>
+                  )}
                   <div className="campo">
                     <label htmlFor="email">E-mail (opcional)</label>
                     <input id="email" className="input" type="email" autoComplete="email" placeholder="Para o comprovante do Mercado Pago" value={cliente.email} onChange={campo('email')} />

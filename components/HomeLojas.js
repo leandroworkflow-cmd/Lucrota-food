@@ -53,6 +53,7 @@ export default function HomeLojas({ lojas }) {
                 <span className="hamb" aria-hidden="true" />
               </summary>
               <div className="menu-lista">
+                <Link href="/conta">Minha conta</Link>
                 <Link href="/meus-pedidos">Meus pedidos</Link>
                 <Link href="/lojistas">Para lojistas</Link>
                 <Link href="/entregador">Seja entregador</Link>

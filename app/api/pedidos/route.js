@@ -1,12 +1,13 @@
 import { distanciaM, noBrasil } from '../../../lib/geo';
 import { geocodificar } from '../../../lib/geo-servidor';
 import { validarEntradaCartao, mensagemRecusa } from '../../../lib/cartao';
-import { criarCartao, criarPix, mpConfigurado } from '../../../lib/mp-servidor';
+import { clienteMPDoPerfil, perfilDoCliente } from '../../../lib/conta-servidor';
+import { criarCartao, criarPix, listarCartoes, mpConfigurado, salvarCartaoMP } from '../../../lib/mp-servidor';
 import { emailDoPagador, pagamentoValido } from '../../../lib/partilha';
 import { validarPedido } from '../../../lib/pedido';
 import { enviarPush, pushConfigurado } from '../../../lib/push-servidor';
 import { sincronizarPagamento } from '../../../lib/pagamento-servidor';
-import { clienteServico } from '../../../lib/servidor';
+import { clienteServico, usuarioDaRequisicao } from '../../../lib/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,13 @@ export async function POST(request) {
     return erro('Requisição inválida.', 400);
   }
   if (body?.site) return erro('Requisição inválida.', 400); // campo-isca: só robôs preenchem
+
+  // Cliente com conta (opcional): o pedido entra no histórico dele e ele pode usar cartões salvos.
+  let usuario = null;
+  if (request.headers.get('authorization')) {
+    const u = await usuarioDaRequisicao(request);
+    if (u.user) usuario = u.user;
+  }
 
   const slug = String(body?.slug || '');
   const { data: loja, error: eLoja } = await admin
@@ -81,6 +89,15 @@ export async function POST(request) {
     const c = validarEntradaCartao(body?.cartao);
     if (c.erro) return erro(c.erro, 400);
     cartao = c.dados;
+    if (cartao.salvo) {
+      // Cartão salvo: precisa ser de quem está logado. A bandeira e o banco vêm do Mercado Pago, não do navegador.
+      if (!usuario) return erro('Entre na sua conta para usar um cartão salvo.', 401);
+      const perfilCartao = await perfilDoCliente(admin, usuario);
+      const lista = perfilCartao?.mp_customer_id ? await listarCartoes(perfilCartao.mp_customer_id) : null;
+      const achado = lista?.find((x) => x.id === cartao.cardId);
+      if (!achado || !achado.metodo) return erro('Esse cartão não está mais salvo. Escolha outro ou digite os dados.', 400);
+      cartao = { ...cartao, metodo: achado.metodo, emissor: achado.emissor, clienteId: perfilCartao.mp_customer_id };
+    }
   }
   if (pixApp || cartaoApp) {
     if (!mpConfigurado()) return erro('O pagamento pelo app não está disponível agora.', 503);
@@ -95,6 +112,7 @@ export async function POST(request) {
       destino_lat: destino?.lat ?? null,
       destino_lng: destino?.lng ?? null,
       ...(pixApp || cartaoApp ? { pagamento_status: 'pendente' } : {}),
+      ...(usuario ? { cliente_user_id: usuario.id } : {}),
     })
     .select('id,numero,token')
     .single();
@@ -116,6 +134,7 @@ export async function POST(request) {
       metodo: cartao.metodo,
       emissor: cartao.emissor,
       cpf: cartao.cpf,
+      clienteId: cartao.clienteId,
     });
     const aprovavel = !cobranca.erro && ['approved', 'in_process', 'pending'].includes(cobranca.status);
     if (!aprovavel) {
@@ -126,6 +145,16 @@ export async function POST(request) {
       .from('dl_pedidos')
       .update({ mp_payment_id: cobranca.id })
       .eq('id', pedido.id);
+    // Cliente pediu para guardar o cartão digitado: só depois de o pagamento passar. Falhar aqui não derruba o pedido.
+    if (usuario && cartao.salvarToken && !cartao.salvo) {
+      try {
+        const perfilNovo = await perfilDoCliente(admin, usuario);
+        const idCliente = await clienteMPDoPerfil(admin, usuario, perfilNovo);
+        if (idCliente) await salvarCartaoMP(idCliente, cartao.salvarToken);
+      } catch (e) {
+        console.error('Cartão não salvo:', e?.message || e);
+      }
+    }
     if (cobranca.status === 'approved') await sincronizarPagamento(admin, pedido.id); // confere no Mercado Pago, marca como pago e avisa a loja
     return Response.json({ ok: true, numero: pedido.numero, token: pedido.token });
   }

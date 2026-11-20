@@ -4,7 +4,7 @@ const ITENS = [
   { id: 'inicio', rotulo: 'Início', icone: '🏠', href: '/' },
   { id: 'buscar', rotulo: 'Buscar', icone: '🔍' },
   { id: 'pedidos', rotulo: 'Meus pedidos', icone: '🧾', href: '/meus-pedidos' },
-  { id: 'lojistas', rotulo: 'Para lojistas', icone: '🏪', href: '/lojistas' },
+  { id: 'conta', rotulo: 'Conta', icone: '👤', href: '/conta' },
 ];
 
 // Barra fixa no rodapé, como nos apps de delivery. "Buscar" usa onBuscar quando a página tem busca.

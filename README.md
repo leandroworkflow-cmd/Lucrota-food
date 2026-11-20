@@ -112,3 +112,10 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 - **Lojas:** aprovar/desativar e definir a comissão de cada uma.
 - **Entregadores:** aprovar/bloquear os da plataforma.
 - **Histórico:** todos os acertos feitos. Também dá para ajustar a parte da plataforma na taxa de entrega.
+
+## Conta do cliente (cartões salvos e histórico)
+1. Rode `supabase/10-conta-cliente.sql` (depois do 09).
+2. Usa o mesmo login Google, a `NEXT_PUBLIC_MP_PUBLIC_KEY` e o `MP_ACCESS_TOKEN`. Nada novo no Vercel.
+3. Página `/conta`: dados de entrega, cartões salvos (adicionar/remover) e acesso aos pedidos. O checkout já vem preenchido e mostra os cartões salvos.
+- Os cartões ficam no Mercado Pago (clientes e cartões). O CVV nunca é salvo: um campo seguro do Mercado Pago pede a cada compra.
+- Pedido feito logado entra no histórico em qualquer aparelho; sem login continua funcionando (histórico só neste aparelho).
