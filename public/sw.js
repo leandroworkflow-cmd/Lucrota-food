@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
     d = { corpo: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(d.titulo || 'MeuDelivery', {
+    self.registration.showNotification(d.titulo || 'Brokê', {
       body: d.corpo || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

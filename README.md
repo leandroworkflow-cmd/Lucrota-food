@@ -1,4 +1,4 @@
-# MeuDelivery
+# Brokê
 
 Delivery de bairro: o cliente pede pelo celular, a loja recebe com aviso e a plataforma cobra uma
 comissão sobre o valor dos produtos dos pedidos entregues. Este é o **protótipo da fase 1**
@@ -103,3 +103,12 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 - O número do cartão vai direto do navegador ao Mercado Pago (vira um token); nosso servidor nunca o vê.
 - A taxa do cartão é da plataforma: loja e entregador recebem na conta corrente igual ao Pix.
 - Recusado: o pedido não é criado e o cliente vê o motivo. Em análise: o pedido espera a confirmação. Cancelar pedido pago devolve o valor na fatura.
+
+## Painel do administrador (/admin)
+1. Rode `supabase/09-admin.sql` (depois do 08).
+2. No Vercel, crie `ADMIN_EMAILS` com o(s) e-mail(s) do Google de quem administra (separe por vírgula). Redeploy.
+3. Entre em `/admin` com essa conta. Só ela acessa; a checagem é no servidor.
+- **Repasses:** lista quem receber (com chave Pix para copiar e planilha CSV) e quem deve. Faça o Pix no banco e clique em "Marcar como pago". O servidor confere se o saldo ainda é o mesmo que você viu.
+- **Lojas:** aprovar/desativar e definir a comissão de cada uma.
+- **Entregadores:** aprovar/bloquear os da plataforma.
+- **Histórico:** todos os acertos feitos. Também dá para ajustar a parte da plataforma na taxa de entrega.

@@ -1,6 +1,6 @@
 export default function manifest() {
   return {
-    name: 'MeuDelivery | Painel da loja',
+    name: 'Brokê | Painel da loja',
     short_name: 'Painel',
     description: 'Receba e gerencie os pedidos da sua loja.',
     id: '/painel',
