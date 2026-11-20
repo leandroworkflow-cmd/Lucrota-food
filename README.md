@@ -42,7 +42,7 @@ entrega não entra).
 
 ## Limites conhecidos (por ser a fase 1)
 
-- Pagamento só na entrega (Pix, dinheiro ou cartão), direto com a loja. A plataforma não segura dinheiro.
+- Pix e cartão só pelo app (a plataforma recebe). Na entrega só dinheiro. As opções "Pix/cartão na entrega" foram removidas do checkout.
 - A entrega é feita pela própria loja. Entregadores da plataforma são a fase 2.
 - Uma loja por conta Google.
 - O limite de pedidos por IP é simples (em memória do servidor). Para mais proteção, use um serviço próprio.
@@ -55,7 +55,7 @@ entrega não entra).
 | Forma de pagamento | Loja | Entregador |
 |---|---|---|
 | Pix pelo app | + produtos, − comissão | + taxa de entrega, − parte da plataforma |
-| Dinheiro, Pix ou cartão na entrega | − comissão (deve à plataforma) | − parte da plataforma (deve à plataforma) |
+| Dinheiro na entrega | − comissão (deve à plataforma) | − parte da plataforma (deve à plataforma) |
 
 O saldo é a soma. Positivo: a plataforma repassa por Pix. Negativo: a pessoa deve à plataforma. Pix do app e dinheiro se compensam na mesma conta. "Parte da plataforma" na entrega é `comissao_entrega_pct` (começa em 0).
 

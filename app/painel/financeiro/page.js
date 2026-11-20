@@ -33,7 +33,7 @@ export default function Conta() {
     <>
       <h1 style={{ fontSize: 28 }}>Conta corrente</h1>
       <p className="muted" style={{ margin: 0, maxWidth: '62ch' }}>
-        Pix pelo app: o dinheiro vai para a plataforma, que repassa a você os produtos menos a comissão de {Number(loja.comissao_pct)}%. Dinheiro e pagamentos na entrega ficam com você, e a comissão
+        Pix pelo app: o dinheiro vai para a plataforma, que repassa a você os produtos menos a comissão de {Number(loja.comissao_pct)}%. Pedidos em dinheiro ficam com você, e a comissão
         entra aqui como valor a pagar. Tudo é somado: o saldo abaixo já é o resultado final. Os lançamentos acontecem quando o pedido é marcado como entregue.
       </p>
 

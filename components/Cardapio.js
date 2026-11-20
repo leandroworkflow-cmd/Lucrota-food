@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { brl, parseValor, round2 } from '../lib/format';
-import { FORMAS } from '../lib/pedido';
+import { FORMAS, FORMAS_ATIVAS } from '../lib/pedido';
 import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
 import { validarCartaoDigitado } from '../lib/cartao';
@@ -36,7 +36,7 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
   const [cliente, setCliente] = useState({ nome: '', telefone: '', endereco: '', bairro: '', complemento: '', email: '' });
-  const [forma, setForma] = useState('pix');
+  const [forma, setForma] = useState(loja.aceita_pix_app ? 'pix_app' : 'dinheiro');
   const [troco, setTroco] = useState('');
   const [observacao, setObservacao] = useState('');
   const [isca, setIsca] = useState('');
@@ -325,6 +325,7 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
               <h3>Como você quer pagar</h3>
               <div className="opcoes" role="group" aria-label="Forma de pagamento">
                 {Object.entries(FORMAS)
+                  .filter(([id]) => FORMAS_ATIVAS.includes(id))
                   .filter(([id]) => (id !== 'pix_app' && id !== 'cartao_app') || (loja.aceita_pix_app && (id === 'pix_app' || chaveMP)))
                   .map(([id, rotulo]) => (
                   <button key={id} type="button" className="opcao" aria-pressed={forma === id} onClick={() => setForma(id)}>

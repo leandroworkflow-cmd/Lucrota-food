@@ -30,7 +30,7 @@ export default function Termos() {
         <h2>Para clientes</h2>
         <ul>
           <li>Os preços e as taxas são os que a loja cadastrou. O total é mostrado antes de você enviar o pedido.</li>
-          <li>O pagamento é feito na entrega (Pix, dinheiro ou cartão), diretamente com a loja ou com quem entrega.</li>
+          <li>O pagamento por Pix ou cartão é feito dentro do app e recebido pela plataforma, que repassa à loja e ao entregador. Também é possível pagar em dinheiro na entrega.</li>
           <li>Informe nome, telefone e endereço corretos. Pedidos com dados falsos podem ser recusados.</li>
           <li>Dúvidas sobre o produto, atraso ou problema no pedido devem ser tratadas com a loja pelo WhatsApp.</li>
         </ul>
