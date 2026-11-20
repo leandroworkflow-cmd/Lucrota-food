@@ -30,7 +30,7 @@ export async function POST(request) {
   // A condição "entregador_id is null" garante que só um entregador consegue pegar a corrida.
   const { data: pego, error } = await admin
     .from('dl_pedidos')
-    .update({ entregador_id: ent.id, entrega: 'aceita', atualizado_em: new Date().toISOString() })
+    .update({ entregador_id: ent.id, entrega: 'aceita', entregador_nome: ent.nome.split(' ')[0], entregador_veiculo: ent.veiculo, chegou_loja_em: null, atualizado_em: new Date().toISOString() })
     .eq('id', pedido.id)
     .is('entregador_id', null)
     .eq('entrega', 'procurando')

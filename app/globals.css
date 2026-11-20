@@ -1867,3 +1867,22 @@ body:has(.nav-inf) .rodape {
 }
 
 .cartao-form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+
+/* Alerta de entregador na porta da loja */
+.alerta-chegada {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--amarelo);
+  color: var(--tinta);
+  border: 2px solid var(--azul-escuro);
+  animation: pulsa-chegada 1.2s ease-in-out infinite;
+}
+@keyframes pulsa-chegada {
+  50% { box-shadow: 0 0 0 6px rgba(255, 196, 0, 0.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alerta-chegada { animation: none; }
+}

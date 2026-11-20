@@ -16,7 +16,8 @@ self.addEventListener('push', (event) => {
       badge: '/icons/icon-192.png',
       tag: d.tag || 'novo-pedido',
       renotify: true,
-      requireInteraction: d.tag ? false : true,
+      requireInteraction: d.urgente || !d.tag,
+      vibrate: d.urgente ? [300, 150, 300, 150, 600] : undefined,
       data: { url: d.url || '/' },
     })
   );

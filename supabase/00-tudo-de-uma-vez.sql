@@ -500,3 +500,9 @@ revoke all on public.dl_clientes from anon, authenticated;
 -- Pedidos feitos com a conta aparecem no histórico, em qualquer aparelho.
 alter table public.dl_pedidos add column if not exists cliente_user_id uuid references auth.users (id) on delete set null;
 create index if not exists dl_pedidos_cliente_idx on public.dl_pedidos (cliente_user_id, criado_em desc) where cliente_user_id is not null;
+
+
+-- ===== 11-chegada-loja.sql =====
+alter table public.dl_pedidos add column if not exists chegou_loja_em timestamptz;   -- quando o entregador tocou em "Cheguei na loja"
+alter table public.dl_pedidos add column if not exists entregador_nome text;          -- primeiro nome, para a loja ver quem vem buscar
+alter table public.dl_pedidos add column if not exists entregador_veiculo text;

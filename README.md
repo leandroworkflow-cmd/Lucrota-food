@@ -119,3 +119,10 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 3. Página `/conta`: dados de entrega, cartões salvos (adicionar/remover) e acesso aos pedidos. O checkout já vem preenchido e mostra os cartões salvos.
 - Os cartões ficam no Mercado Pago (clientes e cartões). O CVV nunca é salvo: um campo seguro do Mercado Pago pede a cada compra.
 - Pedido feito logado entra no histórico em qualquer aparelho; sem login continua funcionando (histórico só neste aparelho).
+
+## Entregador chegou na loja (alerta para o lojista)
+1. Rode `supabase/11-chegada-loja.sql` (depois do 10).
+2. Fluxo: o entregador aceita a corrida → a loja recebe aviso "a caminho" (com nome e veículo) → ao chegar, toca em **Cheguei na loja** → a loja recebe alerta urgente (notificação que fica na tela, vibração, alarme e cartão amarelo piscando no painel) e o cliente também é avisado → o entregador toca em **Peguei o pedido**.
+- O servidor confere pelo GPS que o entregador está a até 300 m da loja (se a loja tem localização e o celular libera o GPS; senão, não bloqueia).
+- Para o alarme tocar no painel, deixe **Som ligado**; o aviso no celular precisa de **Avisos** ativados.
+- Se o entregador desistir, a loja é avisada de que a corrida voltou a procurar.

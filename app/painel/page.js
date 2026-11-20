@@ -5,6 +5,7 @@ import NotificacoesLoja from '../../components/NotificacoesLoja';
 import { usePainel } from '../../components/PainelShell';
 import { api } from '../../lib/api-cliente';
 import { brl, formatarTelefone, hora, linkWhatsApp } from '../../lib/format';
+import { VEICULOS } from '../../lib/entrega';
 import { ACAO, FORMAS, PROXIMO, STATUS } from '../../lib/pedido';
 import { supabase } from '../../lib/supabase';
 
@@ -34,6 +35,13 @@ function bipar() {
   }
 }
 
+// Alarme mais insistente que o do pedido novo: o entregador está na porta esperando.
+function alarmeChegada() {
+  bipar();
+  setTimeout(bipar, 1800);
+  setTimeout(bipar, 3600);
+}
+
 const mesmoDia = (iso) => new Date(iso).toDateString() === new Date().toDateString();
 
 function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
@@ -44,6 +52,12 @@ function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
   const cancelavel = ['novo', 'aceito', 'preparo'].includes(p.status);
   return (
     <li className={p.status === 'novo' ? 'pedido novo' : 'pedido'}>
+      {p.entregador_id && p.chegou_loja_em && ['aceito', 'preparo'].includes(p.status) && (
+        <div className="alerta-chegada" role="alert">
+          <strong>🛵 {p.entregador_nome || 'O entregador'} chegou na loja!</strong>
+          <span>Entregue o pedido #{p.numero} a ele. Chegou às {hora(p.chegou_loja_em)}.</span>
+        </div>
+      )}
       <div className="pedido-topo">
         <strong>#{p.numero}</strong>
         <span className="pedido-meta">
@@ -84,7 +98,11 @@ function CartaoPedido({ p, onStatus, onChamar, ocupado }) {
         <div className="entrega-info" style={{ padding: '10px 12px' }}>
           {p.entregador_id ? (
             <>
-              <span>🛵 Entregador {p.status === 'saiu' ? 'com o pedido' : 'aceitou a corrida'}</span>
+              <span>
+                🛵 {p.entregador_nome || 'Entregador'}
+                {p.entregador_veiculo ? ` (${VEICULOS[p.entregador_veiculo] || p.entregador_veiculo})` : ''}{' '}
+                {p.status === 'saiu' ? 'está com o pedido' : p.chegou_loja_em ? 'está na loja' : 'aceitou e está a caminho'}
+              </span>
               <a href={`/pedido/${p.token}`} target="_blank" rel="noopener noreferrer">
                 Ver no mapa
               </a>
@@ -134,6 +152,7 @@ export default function Pedidos() {
   const [som, setSom] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const vistos = useRef(null);
+  const chegadas = useRef(null);
   const somRef = useRef(false);
 
   useEffect(() => {
@@ -150,7 +169,7 @@ export default function Pedidos() {
     const desde = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
     const { data, error } = await supabase
       .from('dl_pedidos')
-      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status')
+      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,entregador_nome,entregador_veiculo')
       .eq('loja_id', loja.id)
       .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado)')
       .gte('criado_em', desde)
@@ -169,6 +188,10 @@ export default function Pedidos() {
       if (chegou && somRef.current) bipar();
     }
     vistos.current = ids;
+    // Entregador que acabou de chegar na loja: toca o alarme (se o som estiver ligado).
+    const chegou = new Set(data.filter((p) => p.chegou_loja_em && ['aceito', 'preparo'].includes(p.status)).map((p) => p.id));
+    if (chegadas.current && [...chegou].some((id) => !chegadas.current.has(id)) && somRef.current) alarmeChegada();
+    chegadas.current = chegou;
   }, [loja.id]);
 
   useEffect(() => {
@@ -189,8 +212,10 @@ export default function Pedidos() {
   const finalizados = pedidos.filter((p) => ['entregue', 'cancelado'].includes(p.status) && mesmoDia(p.atualizado_em));
 
   useEffect(() => {
-    document.title = novos.length ? `(${novos.length}) Novo pedido | Painel` : 'Painel da loja';
-  }, [novos.length]);
+    const chegaram = andamento.filter((p) => p.chegou_loja_em && p.entregador_id && ['aceito', 'preparo'].includes(p.status)).length;
+    if (chegaram) document.title = `🛵 Entregador chegou | Painel`;
+    else document.title = novos.length ? `(${novos.length}) Novo pedido | Painel` : 'Painel da loja';
+  }, [novos.length, andamento]);
 
   async function mudarStatus(p, status) {
     setOcupado(true);

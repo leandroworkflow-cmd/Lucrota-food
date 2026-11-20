@@ -92,7 +92,7 @@ function Cadastro({ aoConcluir }) {
   );
 }
 
-function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
+function CartaoEntrega({ p, posicao, onAcao, onChegada, ocupado }) {
   const loja = p.dl_lojas || {};
   const saiu = p.status === 'saiu';
   const alvo = saiu
@@ -127,6 +127,12 @@ function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
         </a>
       </div>
 
+      {!saiu && (
+        <div className={p.chegou_loja_em ? 'aviso' : 'entrega-info'} role="status">
+          {p.chegou_loja_em ? '✅ A loja foi avisada que você chegou. Pegue o pedido e toque em "Peguei o pedido".' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
+        </div>
+      )}
+
       {saiu ? (
         <div className="entrega-info">
           <span>
@@ -155,9 +161,15 @@ function CartaoEntrega({ p, posicao, onAcao, ocupado }) {
           </button>
         ) : (
           <>
-            <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onAcao(p.id, 'coletei')}>
-              Peguei o pedido
-            </button>
+            {!p.chegou_loja_em ? (
+              <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onChegada(p.id)}>
+                Cheguei na loja
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onAcao(p.id, 'coletei')}>
+                Peguei o pedido
+              </button>
+            )}
             <button type="button" className="btn btn-pequeno" disabled={ocupado} onClick={() => window.confirm('Devolver essa corrida para outros entregadores?') && onAcao(p.id, 'desistir')}>
               Desistir
             </button>
@@ -194,6 +206,15 @@ function Painel({ dados, recarregar }) {
 
   const acao = (id, a) => executar(() => api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: a } }));
   const aceitar = (id) => executar(() => api('/api/entrega/aceitar', { metodo: 'POST', corpo: { pedido_id: id } }));
+  // "Cheguei na loja": manda a posição para o servidor conferir que você está perto (se o GPS permitir).
+  const chegada = (id) =>
+    executar(async () => {
+      const pos = await new Promise((ok) => {
+        if (!('geolocation' in navigator)) return ok(null);
+        navigator.geolocation.getCurrentPosition((r) => ok({ lat: r.coords.latitude, lng: r.coords.longitude }), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 });
+      });
+      await api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: 'cheguei', ...(pos || {}) } });
+    });
   const salvarChave = () =>
     executar(async () => {
       const { error } = await supabase.from('dl_entregadores').update({ chave_pix: chave.trim() || null }).eq('id', ent.id);
@@ -329,7 +350,7 @@ function Painel({ dados, recarregar }) {
       />
 
       {ativas.map((p) => (
-        <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} ocupado={ocupado} />
+        <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} ocupado={ocupado} />
       ))}
 
       {ent.online && !semAprovacao && (
