@@ -17,14 +17,18 @@ export async function GET(request) {
   ]);
   const travadas = await admin
     .from('dl_pedidos')
-    .select('id,numero,cliente_nome,cliente_telefone,tentativas_codigo,dl_lojas(nome),dl_entregadores(nome)')
+    .select('id,numero,cliente_nome,cliente_telefone,tentativas_codigo,dl_lojas(nome),dl_entregadores!entregador_id(nome)')
     .eq('status', 'saiu')
     .gte('tentativas_codigo', 5)
     .limit(50);
-  const falha = [lojas, ents, saldos, cfg, acertos, travadas].find((x) => x.error);
-  if (falha) {
-    console.error('Admin: consulta falhou:', falha.error.message);
-    return Response.json({ error: 'Não consegui carregar os dados. Confira se os SQL 07, 08 e 09 foram rodados.' }, { status: 502 });
+  const nomes = ['lojas', 'entregadores', 'saldos', 'config', 'acertos', 'entregas travadas'];
+  const lista = [lojas, ents, saldos, cfg, acertos, travadas];
+  const i = lista.findIndex((x) => x.error);
+  if (i >= 0) {
+    const msg = String(lista[i].error.message || '').slice(0, 200);
+    console.error('Admin: consulta falhou:', nomes[i], msg);
+    // Esta rota só responde ao administrador, então mostrar o motivo aqui é seguro.
+    return Response.json({ error: `Não consegui carregar os dados (${nomes[i]}: ${msg}). Confira se os SQL 07 a 18 foram rodados, na ordem.` }, { status: 502 });
   }
 
   const { data: sp } = await admin.from('dl_saques').select('loja_id,entregador_id,valor').eq('status', 'pendente');

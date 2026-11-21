@@ -203,3 +203,5 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - **Avisos:** quando alguém pede, chega uma notificação no seu celular (ative **Avisos** na aba Saques ou Painel, em cada aparelho). No `/admin` aberto, a fila atualiza a cada 15 s, o título da aba mostra a contagem, "(2) Administração", e toca um bip quando chega pedido novo. A notificação abre direto em `/admin?aba=saques`.
 - Contas com saque pendente saem da lista de Repasses da semana, para você não pagar duas vezes.
 - Este fluxo é manual: o Pix é feito por você. O Pix automático depende de um parceiro de pagamentos autorizado (veja a conversa sobre split e subcontas).
+
+> Nota técnica: a tabela `dl_ofertas` (SQL 17) liga pedidos e entregadores, então qualquer consulta que traga o entregador junto com o pedido precisa dizer qual ligação usar: `dl_entregadores!entregador_id(...)`. Sem isso o banco responde "more than one relationship".
