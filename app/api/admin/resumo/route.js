@@ -9,7 +9,7 @@ export async function GET(request) {
   const { admin } = r;
 
   const [lojas, ents, saldos, cfg, acertos] = await Promise.all([
-    admin.from('dl_lojas').select('id,nome,slug,ativa,aberta,comissao_pct,chave_pix,cidade,whatsapp,criado_em').order('criado_em', { ascending: false }),
+    admin.from('dl_lojas').select('id,nome,slug,ativa,aberta,comissao_pct,chave_pix,cidade,whatsapp,cnpj,razao_social,responsavel_nome,termos_aceitos_em,criado_em').order('criado_em', { ascending: false }),
     admin.from('dl_entregadores').select('id,nome,telefone,veiculo,loja_id,aprovado,chave_pix,docs_status,docs_analise,criado_em').order('criado_em', { ascending: false }),
     admin.from('dl_saldos').select('conta,id,saldo'),
     admin.from('dl_config').select('chave,valor'),

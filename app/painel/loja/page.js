@@ -4,6 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import CampoImagem from '../../../components/CampoImagem';
 import Mapa from '../../../components/Mapa';
+import RequisitosLoja from '../../../components/RequisitosLoja';
+import TermoLojista from '../../../components/TermoLojista';
+import { formatarCnpj, formatarCpf, validarEmpresa } from '../../../lib/cnpj';
+import { TERMO_VERSAO } from '../../../lib/termo-lojista';
 import { api } from '../../../lib/api-cliente';
 import { noBrasil } from '../../../lib/geo';
 import { usePainel } from '../../../components/PainelShell';
@@ -30,7 +34,15 @@ export default function MinhaLoja() {
     logo_url: loja?.logo_url || '',
     capa_url: loja?.capa_url || '',
     chave_pix: loja?.chave_pix || '',
+    cnpj: loja?.cnpj ? formatarCnpj(loja.cnpj) : '',
+    razao_social: loja?.razao_social || '',
+    responsavel_nome: loja?.responsavel_nome || '',
+    responsavel_cpf: loja?.responsavel_cpf ? formatarCpf(loja.responsavel_cpf) : '',
   });
+  // Dados da empresa: pedidos no cadastro novo e em lojas antigas que ainda não informaram. Aprovada com CNPJ, fica travado.
+  const pedirEmpresa = nova || !loja.cnpj;
+  const travadoEmpresa = !nova && Boolean(loja.cnpj) && loja.ativa;
+  const [aceito, setAceito] = useState(false);
   const [ponto, setPonto] = useState(loja && Number.isFinite(loja.lat) ? { lat: loja.lat, lng: loja.lng } : null);
   const [aceitaPlataforma, setAceitaPlataforma] = useState(loja ? loja.aceita_plataforma !== false : true);
   const [avisoGeo, setAvisoGeo] = useState('');
@@ -61,7 +73,16 @@ export default function MinhaLoja() {
     if (!(taxa >= 0 && taxa <= 100)) return setErro('A taxa de entrega deve ficar entre R$ 0 e R$ 100.');
     if (!(minimo >= 0 && minimo <= 1000)) return setErro('O pedido mínimo deve ficar entre R$ 0 e R$ 1.000.');
 
+    let empresa = {};
+    if (pedirEmpresa) {
+      const v = validarEmpresa(f);
+      if (v.erro) return setErro(v.erro);
+      if (!aceito) return setErro('Marque a caixa de aceite do termo de parceria para continuar.');
+      empresa = { ...v.dados, termos_versao: TERMO_VERSAO };
+    }
+
     const dados = {
+      ...empresa,
       nome: f.nome.trim(),
       categoria: f.categoria.trim() || null,
       descricao: f.descricao.trim() || null,
@@ -89,6 +110,9 @@ export default function MinhaLoja() {
     if (error) {
       if (error.code === '23505' && String(error.message).includes('slug')) {
         return setErro('Já existe uma loja com esse endereço. Escolha outro.');
+      }
+      if (error.code === '23505' && String(error.message).includes('cnpj')) {
+        return setErro('Já existe uma loja cadastrada com esse CNPJ. Fale com o suporte se for a sua.');
       }
       if (error.code === '23514') return setErro('Algum campo está fora do limite permitido. Revise os valores.');
       return setErro('Não consegui salvar. Tente de novo.');
@@ -140,6 +164,12 @@ export default function MinhaLoja() {
   return (
     <>
       <h1 style={{ fontSize: 28 }}>{nova ? 'Cadastre sua loja' : 'Minha loja'}</h1>
+      {pedirEmpresa && <RequisitosLoja />}
+      {!nova && !loja.cnpj && (
+        <div className="aviso aviso-erro" role="status">
+          Informe o CNPJ da loja e aceite o termo de parceria para continuar vendendo.
+        </div>
+      )}
       {nova && (
         <p className="muted" style={{ margin: 0 }}>
           Preencha os dados da loja. Depois você monta o cardápio e, quando liberarmos, os clientes já podem pedir.
@@ -151,6 +181,38 @@ export default function MinhaLoja() {
           <CampoImagem rotulo="Logo da loja" formato="redondo" maxLado={400} userId={user.id} valor={f.logo_url} onChange={(v) => setF((x) => ({ ...x, logo_url: v }))} />
           <CampoImagem rotulo="Foto de capa" formato="largo" maxLado={1200} userId={user.id} valor={f.capa_url} onChange={(v) => setF((x) => ({ ...x, capa_url: v }))} />
         </div>
+
+
+        <h2 style={{ fontSize: 20, margin: '8px 0 0' }}>Dados da empresa</h2>
+        {travadoEmpresa ? (
+          <div className="entrega-info">
+            {loja.razao_social} · CNPJ {formatarCnpj(loja.cnpj)} · Responsável {loja.responsavel_nome}
+            <small className="muted" style={{ display: 'block' }}>Para alterar CNPJ ou responsável, fale com o suporte.</small>
+          </div>
+        ) : pedirEmpresa ? (
+          <>
+            <div className="linha-campos">
+              <div className="campo">
+                <label htmlFor="cnpj">CNPJ (MEI também vale)</label>
+                <input id="cnpj" className="input" required inputMode="numeric" placeholder="00.000.000/0000-00" value={f.cnpj} onChange={(e) => setF((x) => ({ ...x, cnpj: formatarCnpj(e.target.value) }))} />
+              </div>
+              <div className="campo">
+                <label htmlFor="razao">Razão social</label>
+                <input id="razao" className="input" required maxLength={120} placeholder="Como está no cartão CNPJ" value={f.razao_social} onChange={campo('razao_social')} />
+              </div>
+            </div>
+            <div className="linha-campos">
+              <div className="campo">
+                <label htmlFor="resp">Responsável legal (nome completo)</label>
+                <input id="resp" className="input" required maxLength={80} value={f.responsavel_nome} onChange={campo('responsavel_nome')} />
+              </div>
+              <div className="campo">
+                <label htmlFor="rcpf">CPF do responsável</label>
+                <input id="rcpf" className="input" required inputMode="numeric" placeholder="000.000.000-00" value={f.responsavel_cpf} onChange={(e) => setF((x) => ({ ...x, responsavel_cpf: formatarCpf(e.target.value) }))} />
+              </div>
+            </div>
+          </>
+        ) : null}
 
         <div className="campo">
           <label htmlFor="nome">Nome da loja</label>
@@ -296,6 +358,7 @@ export default function MinhaLoja() {
             {ok}
           </div>
         )}
+        {pedirEmpresa && <TermoLojista aceito={aceito} aoMudar={setAceito} />}
         <button type="submit" className="btn btn-primario" disabled={salvando}>
           {salvando ? 'Salvando…' : nova ? 'Cadastrar loja' : 'Salvar dados'}
         </button>

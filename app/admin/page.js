@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Marca from '../../components/Marca';
 import RevisaoDocumentos from '../../components/RevisaoDocumentos';
 import { STATUS_DOCS } from '../../lib/documentos';
+import { formatarCnpj } from '../../lib/cnpj';
 import { csvRepasses, planoRepasse } from '../../lib/admin';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
@@ -48,6 +49,17 @@ export default function Admin() {
   useEffect(() => {
     if (auth.status === 'in') carregar();
   }, [auth.status, carregar]);
+
+  async function consultarCnpj(l) {
+    setAviso('');
+    setErro('');
+    try {
+      const r = await api(`/api/admin/cnpj?id=${l.id}`);
+      setAviso(`${l.nome}: Receita diz "${r.razao_social}" · situação ${r.situacao} · atividade ${r.cnae}${r.cnae_alimentos ? '' : ' (não parece ser de alimentos)'} · ${r.municipio}. Informado no cadastro: "${r.informada}".`);
+    } catch (e) {
+      setErro(e.message);
+    }
+  }
 
   async function acao(corpo, ok) {
     setOcupado(true);
@@ -289,7 +301,18 @@ export default function Admin() {
                     <tbody>
                       {dados.lojas.map((l) => (
                         <tr key={l.id}>
-                          <td>{l.nome}<div className="muted" style={{ fontSize: 13 }}>{l.cidade || ''} {l.whatsapp ? `· ${l.whatsapp}` : ''}</div></td>
+                          <td>
+                            {l.nome}
+                            <div className="muted" style={{ fontSize: 13 }}>{l.cidade || ''} {l.whatsapp ? `· ${l.whatsapp}` : ''}</div>
+                            {l.cnpj ? (
+                              <div className="muted" style={{ fontSize: 13 }}>
+                                {l.razao_social} · CNPJ {formatarCnpj(l.cnpj)} · {l.responsavel_nome}{' '}
+                                <button type="button" className="btn btn-pequeno" onClick={() => consultarCnpj(l)}>Consultar Receita</button>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 13, color: '#b3261e' }}>Sem CNPJ informado</div>
+                            )}
+                          </td>
                           <td><CampoPct valor={l.comissao_pct} ocupado={ocupado} salvar={(v) => acao({ acao: 'loja_comissao', id: l.id, comissao_pct: v }, `Comissão de ${l.nome} salva.`)} /></td>
                           <td className="d">{brl(l.saldo)}</td>
                           <td>

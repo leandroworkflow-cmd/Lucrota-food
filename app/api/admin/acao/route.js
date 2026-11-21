@@ -19,6 +19,10 @@ export async function POST(request) {
   switch (b.acao) {
     case 'loja_ativa': {
       if (!uuidValido(b.id) || typeof b.ativa !== 'boolean') return erro('Requisição inválida.', 400);
+      if (b.ativa) {
+        const { data: l0 } = await admin.from('dl_lojas').select('cnpj,termos_versao').eq('id', b.id).maybeSingle();
+        if (l0 && (!l0.cnpj || !l0.termos_versao)) return erro('A loja ainda não informou o CNPJ e aceitou o termo de parceria.', 409);
+      }
       const { error } = await admin.from('dl_lojas').update({ ativa: b.ativa }).eq('id', b.id);
       if (error) return erro('Não consegui salvar. Tente de novo.', 502);
       return Response.json({ ok: true });

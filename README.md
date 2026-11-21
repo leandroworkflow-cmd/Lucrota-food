@@ -170,3 +170,12 @@ Entregador **da plataforma** (sem código de loja) só recebe corridas depois de
 ## Tela do entregador
 
 Tema escuro com menu (Início, Ganhos, Documentos, Perfil, Suporte e ajuda, Configurações), saldo no topo, mapa com as lojas que têm corrida e botão grande Conectar/Desconectar.
+
+
+## Cadastro de lojista: CNPJ, requisitos e termo de parceria
+
+- Rode o **SQL 16** (colunas cnpj, razao_social, responsavel_nome, responsavel_cpf, termos_versao e termos_aceitos_em; um CNPJ por loja; a data do aceite é gravada pelo servidor).
+- Novo cadastro: faixa com os requisitos no topo, CNPJ (MEI vale, os dígitos são validados), razão social, responsável e CPF, e no fim o termo de parceria com a caixa **Li e estou de acordo**. Sem a caixa marcada, não salva.
+- Em `/admin` > Lojas: aparece razão social, CNPJ e responsável, e o botão **Consultar Receita** (consulta gratuita à BrasilAPI) mostra situação cadastral e atividade. Não dá para aprovar loja sem CNPJ e sem aceite. Lojas antigas veem um aviso e preenchem o CNPJ no painel.
+- Depois de aprovada, o CNPJ e o CPF só mudam com o suporte (travado no banco).
+- O texto do termo está em `lib/termo-lojista.js` (mude `TERMO_VERSAO` ao editar). É um modelo: peça a um advogado para revisar antes de lançar.

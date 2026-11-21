@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Marca from '../../components/Marca';
 import Rodape from '../../components/Rodape';
+import RequisitosLoja from '../../components/RequisitosLoja';
 import { SITE } from '../../lib/site';
 
 export const metadata = {
@@ -72,10 +73,14 @@ export default function Lojistas() {
           ))}
         </ul>
 
+        <div style={{ margin: '0 0 18px' }}>
+          <RequisitosLoja />
+        </div>
+
         <section className="lj-passos">
           <h2 style={{ margin: 0, fontSize: 22 }}>Como funciona</h2>
           <ol>
-            <li>Entre com sua conta Google e cadastre a loja.</li>
+            <li>Entre com sua conta Google e cadastre a loja com o CNPJ (MEI vale) e aceite o termo de parceria.</li>
             <li>Monte o cardápio com fotos e preços.</li>
             <li>Depois da liberação, o cliente pede e você recebe o aviso no celular.</li>
             <li>Sem mensalidade: a comissão é cobrada só sobre os produtos de cada pedido.</li>
