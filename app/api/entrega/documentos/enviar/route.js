@@ -1,4 +1,5 @@
 import { erro, entregadorDaRequisicao, lerJson } from '../../../../../lib/entrega-servidor';
+import { avisarAdmins } from '../../../../../lib/admin-servidor';
 import { avisarUsuarios } from '../../../../../lib/avisos-servidor';
 import { docsFaltando, validarDadosDocs, avaliarRegras, precisaDeDocumentos, ROTULO_DOC } from '../../../../../lib/documentos';
 import { conferirComIA } from '../../../../../lib/ia-documentos';
@@ -48,5 +49,6 @@ export async function POST(request) {
     })
     .eq('id', ent.id);
   if (e) return erro('Não consegui concluir o envio. Tente de novo.', 502);
+  await avisarAdmins(admin, { titulo: 'Documentos para analisar', corpo: `${ent.nome} enviou CNH, documento do veículo e selfie.` });
   return Response.json({ ok: true });
 }

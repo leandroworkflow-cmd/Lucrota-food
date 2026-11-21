@@ -118,6 +118,7 @@ export default function MinhaLoja() {
       return setErro('Não consegui salvar. Tente de novo.');
     }
     await recarregarLoja();
+    if (pedirEmpresa) api('/api/loja/avisar-cadastro', { metodo: 'POST', corpo: {} }).catch(() => {});
     if (nova) router.replace('/painel/cardapio');
     else setOk('Dados salvos.');
   }

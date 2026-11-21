@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Marca from '../../components/Marca';
+import AvisosPush from '../../components/AvisosPush';
+import PainelNumeros from '../../components/PainelNumeros';
 import RevisaoDocumentos from '../../components/RevisaoDocumentos';
 import { STATUS_DOCS } from '../../lib/documentos';
 import { formatarCnpj } from '../../lib/cnpj';
@@ -11,6 +13,7 @@ import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { brl } from '../../lib/format';
 
 const ABAS = [
+  ['painel', 'Painel'],
   ['repasses', 'Repasses'],
   ['lojas', 'Lojas'],
   ['entregadores', 'Entregadores'],
@@ -33,7 +36,7 @@ export default function Admin() {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
-  const [aba, setAba] = useState('repasses');
+  const [aba, setAba] = useState('painel');
   const [ocupado, setOcupado] = useState(false);
   const [revisando, setRevisando] = useState(null);
 
@@ -199,6 +202,18 @@ export default function Admin() {
                   </div>
                 ))}
               </section>
+            )}
+
+            {aba === 'painel' && (
+              <>
+                <PainelNumeros aoAbrir={setAba} />
+                <AvisosPush
+                  titulo="Avisos de cadastro novo"
+                  descricao="Receba no celular um aviso quando uma loja ou um entregador se cadastrar ou enviar documentos."
+                  inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
+                  desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
+                />
+              </>
             )}
 
             {aba === 'repasses' && (

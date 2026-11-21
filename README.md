@@ -179,3 +179,9 @@ Tema escuro com menu (Início, Ganhos, Documentos, Perfil, Suporte e ajuda, Conf
 - Em `/admin` > Lojas: aparece razão social, CNPJ e responsável, e o botão **Consultar Receita** (consulta gratuita à BrasilAPI) mostra situação cadastral e atividade. Não dá para aprovar loja sem CNPJ e sem aceite. Lojas antigas veem um aviso e preenchem o CNPJ no painel.
 - Depois de aprovada, o CNPJ e o CPF só mudam com o suporte (travado no banco).
 - O texto do termo está em `lib/termo-lojista.js` (mude `TERMO_VERSAO` ao editar). É um modelo: peça a um advogado para revisar antes de lançar.
+
+## Painel do administrador (/admin > Painel)
+
+Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cadastros esperando aprovação (com atalhos), hoje e este mês (pedidos entregues, vendas, ticket médio, comissão, cancelamentos), pedidos em andamento agora, gráfico dos últimos 30 dias, rede (lojas ativas, entregadores online, entregadores sem documentos), forma de pagamento e rankings de lojas e entregadores. Dias contados no horário de Brasília. Não precisa de SQL novo.
+
+**Avisos no seu celular:** na aba Painel, ative "Avisos de cadastro novo". Você recebe um aviso quando uma loja se cadastra, quando um entregador se cadastra e quando ele envia os documentos. Precisa das variáveis VAPID e ADMIN_EMAILS no Vercel (as mesmas dos outros avisos).

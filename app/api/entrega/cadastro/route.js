@@ -1,5 +1,6 @@
 import { erro, entregadorDaRequisicao, lerJson } from '../../../../lib/entrega-servidor';
 import { validarCadastroEntregador } from '../../../../lib/entrega';
+import { avisarAdmins } from '../../../../lib/admin-servidor';
 import { normalizarTelefone } from '../../../../lib/format';
 import { validarDadosDocs, validarEndereco } from '../../../../lib/documentos';
 
@@ -33,5 +34,6 @@ export async function POST(request) {
     .from('dl_entregadores')
     .insert({ user_id: c.user.id, ...v.dados, ...extra, loja_id: lojaId, aprovado: Boolean(lojaId) });
   if (error) return erro('Não consegui concluir o cadastro. Tente de novo.', 502);
+  if (!lojaId) await avisarAdmins(c.admin, { titulo: 'Entregador novo', corpo: `${v.dados.nome} se cadastrou e vai enviar os documentos.` });
   return Response.json({ ok: true, exclusivo: Boolean(lojaId) });
 }
