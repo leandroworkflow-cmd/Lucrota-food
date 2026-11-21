@@ -1,6 +1,7 @@
 import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
+import { conferirCodigo } from '../../../../lib/codigo';
 import { chegadaValida, passoDaEntrega } from '../../../../lib/entrega';
 import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
@@ -18,13 +19,20 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,dl_lojas(dono_id,nome,lat,lng)')
+    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,lat,lng)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido) return erro('Pedido não encontrado.', 404);
 
   const passo = passoDaEntrega(ent, pedido, body.acao);
   if (passo.erro) return erro(passo.erro, 409);
+
+  if (body.acao === 'entreguei') {
+    // A entrega só conclui com o código que o cliente informa ao entregador.
+    const cod = conferirCodigo({ esperado: pedido.codigo_entrega, tentativas: pedido.tentativas_codigo, informado: body.codigo });
+    if (cod.errado) await admin.from('dl_pedidos').update({ tentativas_codigo: (pedido.tentativas_codigo || 0) + 1 }).eq('id', pedido.id);
+    if (cod.erro) return erro(cod.erro, cod.bloqueado ? 423 : 409);
+  }
 
   if (body.acao === 'cheguei') {
     const gps = chegadaValida({ lat: Number(body.lat), lng: Number(body.lng) }, pedido.dl_lojas);

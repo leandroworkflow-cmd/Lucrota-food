@@ -164,6 +164,28 @@ export default function Admin() {
               ))}
             </div>
 
+            {dados.travadas?.length > 0 && (
+              <section className="cartao" role="alert">
+                <h2>Entregas travadas pelo código ({dados.travadas.length})</h2>
+                <p className="muted" style={{ margin: 0 }}>O entregador errou o código 5 vezes. Fale com o cliente pelo WhatsApp: se ele confirmar que recebeu, conclua a entrega; se não, libere novas tentativas.</p>
+                {dados.travadas.map((t) => (
+                  <div key={t.id} className="linha-sacola">
+                    <div>
+                      <strong>Pedido {t.numero}</strong> · {t.loja}
+                      <div className="muted" style={{ fontSize: 14 }}>
+                        Cliente {t.cliente} · entregador {t.entregador || '—'} ·{' '}
+                        <a href={`https://wa.me/${String(t.telefone).replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp do cliente</a>
+                      </div>
+                    </div>
+                    <div className="opcoes">
+                      <button type="button" className="btn btn-pequeno" disabled={ocupado} onClick={() => acao({ acao: 'liberar_codigo', pedido_id: t.id }, `Pedido ${t.numero}: novas tentativas liberadas.`)}>Liberar tentativas</button>
+                      <button type="button" className="btn btn-pequeno btn-primario" disabled={ocupado} onClick={() => window.confirm(`Confirma que o cliente recebeu o pedido ${t.numero}? Isso conclui a entrega.`) && acao({ acao: 'entrega_manual', pedido_id: t.id }, `Pedido ${t.numero} concluído.`)}>Concluir entrega</button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
             {aba === 'repasses' && (
               <>
                 <section className="cartao">

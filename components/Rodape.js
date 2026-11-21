@@ -8,6 +8,7 @@ export default function Rodape() {
         <span>
           {SITE.nome}, {SITE.cidade} - {SITE.uf}
         </span>
+        <Link href="/ajuda">Ajuda</Link>
         <Link href="/lojistas">Para lojistas</Link>
         <Link href="/entregador">Seja entregador</Link>
         <Link href="/termos">Termos de uso</Link>

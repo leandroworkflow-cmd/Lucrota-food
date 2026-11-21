@@ -7,6 +7,7 @@ import AvisosPush from '../../../components/AvisosPush';
 import Marca from '../../../components/Marca';
 import PixPagamento from '../../../components/PixPagamento';
 import RastreioEntrega from '../../../components/RastreioEntrega';
+import BotaoAjuda from '../../../components/BotaoAjuda';
 import Rodape from '../../../components/Rodape';
 import { brl, hora, linkWhatsApp } from '../../../lib/format';
 import { PCT_PRODUTOS } from '../../../lib/cancelamento';
@@ -217,10 +218,19 @@ export default function Acompanhar() {
 
             {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && <RastreioEntrega pedido={pedido} />}
 
+            {!final && pedido.codigo_entrega && pedido.status !== 'novo' && (
+              <section className="bloco" aria-label="Código de entrega" style={{ textAlign: 'center' }}>
+                <div className="muted">Código de entrega</div>
+                <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '0.2em', fontFamily: 'var(--font-display, inherit)' }}>{pedido.codigo_entrega}</div>
+                <small className="muted">Informe ao entregador só quando receber o pedido. É com este código que a entrega é concluída.</small>
+              </section>
+            )}
             {!final && pedido.cancelamento?.pode && <CancelarPedido token={token} cancelamento={pedido.cancelamento} aoMudar={carregar} />}
             {!final && pedido.cancelamento && !pedido.cancelamento.pode && ['preparo'].includes(pedido.status) && (
               <p className="muted" style={{ margin: 0 }}>{pedido.cancelamento.motivo}</p>
             )}
+
+            <BotaoAjuda papel="cliente" numero={pedido.numero} loja={loja?.nome} bloco rotulo="Ajuda do Brokê no WhatsApp" />
 
             {loja?.whatsapp && (
               <a

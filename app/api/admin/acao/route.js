@@ -1,4 +1,7 @@
+import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
+import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { comissaoValida, descricaoAcerto } from '../../../../lib/admin';
+import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { adminDaRequisicao } from '../../../../lib/admin-servidor';
 import { erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
@@ -38,6 +41,30 @@ export async function POST(request) {
       if (pct === null) return erro('A parte da plataforma deve ficar entre 0% e 50%.', 400);
       const { error } = await admin.from('dl_config').upsert({ chave: 'comissao_entrega_pct', valor: pct });
       if (error) return erro('Não consegui salvar. Tente de novo.', 502);
+      return Response.json({ ok: true });
+    }
+    case 'liberar_codigo': {
+      if (!uuidValido(b.pedido_id)) return erro('Requisição inválida.', 400);
+      const { error } = await admin.from('dl_pedidos').update({ tentativas_codigo: 0 }).eq('id', b.pedido_id).eq('status', 'saiu');
+      if (error) return erro('Não consegui liberar agora.', 502);
+      return Response.json({ ok: true });
+    }
+    case 'entrega_manual': {
+      // Suporte confirmou com o cliente que o pedido chegou: conclui sem o código.
+      if (!uuidValido(b.pedido_id)) return erro('Requisição inválida.', 400);
+      const agora = new Date().toISOString();
+      const { data: p } = await admin
+        .from('dl_pedidos')
+        .update({ status: 'entregue', entregue_em: agora, atualizado_em: agora })
+        .eq('id', b.pedido_id)
+        .eq('status', 'saiu')
+        .select('id,numero,token,entregador_id,dl_lojas(dono_id,nome)')
+        .maybeSingle();
+      if (!p) return erro('Esse pedido não está mais aguardando entrega.', 409);
+      await registrarLancamentos(admin, p.id);
+      if (p.entregador_id) await admin.from('dl_localizacoes').delete().eq('entregador_id', p.entregador_id);
+      await avisarCliente(admin, p.id, { ...avisoDoCliente('entregue', { numero: p.numero, lojaNome: p.dl_lojas?.nome }), url: `/pedido/${p.token}`, tag: `pedido-${p.numero}` });
+      await avisarUsuarios(admin, [p.dl_lojas?.dono_id].filter(Boolean), { ...avisoParaLoja('entregou', { numero: p.numero }), url: '/painel', tag: `entrega-${p.numero}` });
       return Response.json({ ok: true });
     }
     case 'acertar': {

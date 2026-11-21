@@ -1,6 +1,7 @@
 import { avisoDoCliente, transicaoDaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente } from '../../../../lib/avisos-servidor';
 import { erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
+import { conferirCodigo } from '../../../../lib/codigo';
 import { formaOnline } from '../../../../lib/cartao';
 import { cancelarPagamento, reembolsar } from '../../../../lib/mp-servidor';
 import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
@@ -20,13 +21,20 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,status,entregador_id,loja_id,forma_pagamento,pagamento_status,mp_payment_id,dl_lojas(dono_id,nome)')
+    .select('id,numero,status,entregador_id,loja_id,forma_pagamento,pagamento_status,mp_payment_id,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido || pedido.dl_lojas?.dono_id !== r.user.id) return erro('Pedido não encontrado.', 404);
 
   const t = transicaoDaLoja(pedido.status, body.status, Boolean(pedido.entregador_id));
   if (t.erro) return erro(t.erro, 409);
+
+  if (body.status === 'entregue') {
+    // Loja que entrega sozinha também confirma com o código do cliente.
+    const cod = conferirCodigo({ esperado: pedido.codigo_entrega, tentativas: pedido.tentativas_codigo, informado: body.codigo });
+    if (cod.errado) await admin.from('dl_pedidos').update({ tentativas_codigo: (pedido.tentativas_codigo || 0) + 1 }).eq('id', pedido.id);
+    if (cod.erro) return erro(cod.erro, cod.bloqueado ? 423 : 409);
+  }
 
   if (pedido.pagamento_status === 'pendente' && body.status !== 'cancelado') return erro('Aguarde a confirmação do pagamento do cliente.', 409);
 

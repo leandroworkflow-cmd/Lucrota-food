@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AvisosPush from '../../components/AvisosPush';
 import Mapa from '../../components/Mapa';
+import BotaoAjuda from '../../components/BotaoAjuda';
 import Marca from '../../components/Marca';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
@@ -92,7 +93,9 @@ function Cadastro({ aoConcluir }) {
   );
 }
 
-function CartaoEntrega({ p, posicao, onAcao, onChegada, ocupado }) {
+function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
+  const [codigo, setCodigo] = useState('');
+  const [msgCodigo, setMsgCodigo] = useState('');
   const loja = p.dl_lojas || {};
   const saiu = p.status === 'saiu';
   const alvo = saiu
@@ -154,11 +157,32 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, ocupado }) {
         )
       )}
 
+      <BotaoAjuda papel="entregador" numero={p.numero} loja={loja.nome} />
+
       <div className="opcoes">
         {saiu ? (
-          <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onAcao(p.id, 'entreguei')}>
-            Entreguei
-          </button>
+          <form
+            style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setMsgCodigo('');
+              const m = await onEntregar(p.id, codigo);
+              if (m) setMsgCodigo(m);
+            }}
+          >
+            <label htmlFor={`cod-${p.id}`} style={{ fontWeight: 600 }}>
+              Código de entrega: peça os 4 números ao cliente
+            </label>
+            <input id={`cod-${p.id}`} className="input" inputMode="numeric" autoComplete="off" maxLength={4} placeholder="0000" style={{ fontSize: 28, letterSpacing: '0.3em', textAlign: 'center' }} value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} />
+            {msgCodigo && (
+              <div className="aviso aviso-erro" role="alert">
+                {msgCodigo}
+              </div>
+            )}
+            <button type="submit" className="btn btn-primario" disabled={ocupado || codigo.length !== 4}>
+              Confirmar entrega
+            </button>
+          </form>
         ) : (
           <>
             {!p.chegou_loja_em ? (
@@ -207,6 +231,20 @@ function Painel({ dados, recarregar }) {
   }
 
   const acao = (id, a) => executar(() => api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: a } }));
+  // Conclui a entrega com o código do cliente. Devolve a mensagem de erro (ou null se deu certo).
+  const entregar = async (id, codigo) => {
+    setOcupado(true);
+    try {
+      await api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: 'entreguei', codigo } });
+      await recarregar();
+      return null;
+    } catch (e) {
+      await recarregar().catch(() => {});
+      return e.message;
+    } finally {
+      setOcupado(false);
+    }
+  };
   const aceitar = (id) => executar(() => api('/api/entrega/aceitar', { metodo: 'POST', corpo: { pedido_id: id } }));
   // "Cheguei na loja": manda a posição para o servidor conferir que você está perto (se o GPS permitir).
   const chegada = (id) =>
@@ -376,7 +414,7 @@ function Painel({ dados, recarregar }) {
       />
 
       {ativas.map((p) => (
-        <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} ocupado={ocupado} />
+        <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
       ))}
 
       {ent.online && !semAprovacao && (

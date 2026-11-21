@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+import { gerarCodigo } from '../../../lib/codigo';
 import { distanciaM, noBrasil } from '../../../lib/geo';
 import { geocodificar } from '../../../lib/geo-servidor';
 import { validarEntradaCartao, mensagemRecusa } from '../../../lib/cartao';
@@ -109,6 +111,7 @@ export async function POST(request) {
     .insert({
       loja_id: loja.id,
       ...v.pedido,
+      codigo_entrega: gerarCodigo(randomInt(0, 10000)),
       destino_lat: destino?.lat ?? null,
       destino_lng: destino?.lng ?? null,
       ...(pixApp || cartaoApp ? { pagamento_status: 'pendente' } : {}),

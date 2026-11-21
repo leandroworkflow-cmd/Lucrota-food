@@ -142,3 +142,14 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 ## Entregador desistiu: corrida reaberta
 - Se o entregador desiste antes de pegar o pedido, a corrida volta para a fila e os entregadores disponíveis recebem um aviso "Corrida reaberta" (menos quem desistiu). A loja também é avisada.
 - Na lista de corridas disponíveis, cada corrida mostra a distância e o tempo estimado até a loja, e a mais perto vem primeiro. A posição do entregador é usada só na tela dele para esse cálculo; não é enviada nem guardada.
+
+## Central de ajuda (WhatsApp)
+- Número em `lib/site.js` (`suporteWhatsapp`, padrão 5531983733004). Dá para trocar no Vercel com `NEXT_PUBLIC_SUPORTE_WHATSAPP` (DDI+DDD+número, só dígitos).
+- Botão "Ajuda no WhatsApp" na tela do pedido (cliente), em cada corrida (entregador) e em cada pedido do painel (lojista). A mensagem já leva o número do pedido e quem está pedindo ajuda.
+- Página `/ajuda` com os três botões e dúvidas comuns; link no rodapé e no menu.
+
+## Código de entrega
+1. Rode `supabase/13-codigo-entrega.sql` (depois do 12). Pedidos em andamento ganham código na hora.
+2. Cada pedido nasce com um código de 4 números, visível só para o cliente na tela do pedido (do aceite até a entrega).
+3. O entregador toca em "Entreguei", digita o código que o cliente informa e confirma. Sem o código certo, a entrega não conclui. Loja que entrega sozinha também confirma com o código.
+4. Após 5 erros, o pedido trava. No `/admin` aparece "Entregas travadas": o suporte fala com o cliente e escolhe "Liberar tentativas" ou "Concluir entrega".
