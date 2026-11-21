@@ -9,6 +9,7 @@ import Documentos from './Documentos';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
+import { SEGUNDOS_OFERTA } from '../../lib/ofertas';
 import { brl } from '../../lib/format';
 import { FORMAS } from '../../lib/pedido';
 import { linkSuporte } from '../../lib/suporte';
@@ -223,7 +224,12 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
 function Painel({ dados, recarregar, aoSair }) {
   const [tela, setTela] = useState('mapa');
   const [menu, setMenu] = useState(false);
-  const [altMapa] = useState(() => Math.max(260, Math.round(window.innerHeight * 0.5)));
+  const [altMapa] = useState(() => Math.round(window.innerHeight));
+  const [aberto, setAberto] = useState(false);
+  const [tratadas, setTratadas] = useState(() => new Set());
+  const [oferta, setOferta] = useState(null);
+  const [restante, setRestante] = useState(SEGUNDOS_OFERTA);
+  const audio = useRef(null);
   const { entregador: ent, ativas, disponiveis, conta } = dados;
   const [chave, setChave] = useState(conta.chave_pix || '');
   const [ocupado, setOcupado] = useState(false);
@@ -353,6 +359,75 @@ function Painel({ dados, recarregar, aoSair }) {
     };
   }, [levando, ent.id]);
 
+  // ---- Som e vibração da oferta de corrida (o navegador só libera o som depois de um toque) ----
+  const liberarSom = useCallback(() => {
+    try {
+      if (!audio.current) audio.current = new (window.AudioContext || window.webkitAudioContext)();
+      audio.current.resume?.();
+    } catch {}
+  }, []);
+  useEffect(() => {
+    document.addEventListener('pointerdown', liberarSom, { once: true });
+    return () => document.removeEventListener('pointerdown', liberarSom);
+  }, [liberarSom]);
+  function tocarOferta() {
+    try {
+      const ctx = audio.current;
+      if (ctx) {
+        [0, 0.35, 0.7].forEach((t) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.frequency.value = 880;
+          g.gain.value = 0.25;
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start(ctx.currentTime + t);
+          o.stop(ctx.currentTime + t + 0.22);
+        });
+      }
+      navigator.vibrate?.([300, 150, 300]);
+    } catch {}
+  }
+
+  // ---- Oferta de corrida em cartão grande, com contagem regressiva ----
+  const candidata = ent.online && !(!ent.exclusivo && !ent.aprovado) ? corridas.find((p) => !tratadas.has(p.id)) : null;
+  useEffect(() => {
+    if (candidata && (!oferta || oferta.id !== candidata.id)) {
+      setOferta({ id: candidata.id, ate: Date.now() + SEGUNDOS_OFERTA * 1000 });
+      setRestante(SEGUNDOS_OFERTA);
+      tocarOferta();
+    } else if (!candidata && oferta) setOferta(null);
+  }, [candidata?.id]);
+
+  const responder = useCallback((id, resposta) => {
+    setTratadas((prev) => new Set(prev).add(id));
+    setOferta(null);
+    api('/api/entrega/oferta', { metodo: 'POST', corpo: { pedido_id: id, resposta } }).then(() => resposta === 'recusada' && recarregar()).catch(() => {});
+  }, [recarregar]);
+
+  useEffect(() => {
+    if (!oferta) return undefined;
+    const id = setInterval(() => {
+      const r = Math.ceil((oferta.ate - Date.now()) / 1000);
+      setRestante(Math.max(0, r));
+      if (r <= 0) responder(oferta.id, 'expirada');
+    }, 250);
+    return () => clearInterval(id);
+  }, [oferta, responder]);
+
+  // Quando uma entrega começa, abre o painel para mostrar o que fazer.
+  const qtdAtivas = ativas.length;
+  useEffect(() => {
+    if (qtdAtivas > 0) setAberto(true);
+  }, [qtdAtivas]);
+
+  const ind = dados.indicadores || {};
+  const pendencias = dados.pendencias || [];
+  const ligar = () => {
+    liberarSom();
+    alternarOnline();
+  };
+
   const semAprovacao = !ent.exclusivo && !ent.aprovado;
   const docs = ent.docs_status;
   const precisaDocs = !ent.exclusivo && docs !== 'aprovado';
@@ -368,6 +443,33 @@ function Painel({ dados, recarregar, aoSair }) {
       if (l && Number.isFinite(l.lat)) pontosMapa.push({ id: `l-${p.id}`, tipo: 'loja', lat: l.lat, lng: l.lng, rotulo: `${l.nome} · ${brl(p.taxa_entrega)}` });
     });
   }
+
+
+  const pOf = oferta ? corridas.find((p) => p.id === oferta.id) : null;
+  const ofertaUI = pOf && (
+    <div className="ent-oferta-fundo" role="alertdialog" aria-label="Nova corrida" aria-live="assertive">
+      <div className="ent-oferta">
+        <div className="ent-linha">
+          <strong style={{ fontSize: 18 }}>Nova corrida</strong>
+          <span className="ent-contagem">{restante}s</span>
+        </div>
+        <div className="ent-oferta-valor">{brl(pOf.taxa_entrega)}</div>
+        <div className="ent-oferta-barra"><div style={{ width: `${(restante / SEGUNDOS_OFERTA) * 100}%` }} /></div>
+        <div style={{ display: 'grid', gap: 4 }}>
+          <strong style={{ fontSize: 18 }}>{pOf.dl_lojas?.nome}</strong>
+          <span className="muted">Retirar: {[pOf.dl_lojas?.endereco, pOf.dl_lojas?.bairro].filter(Boolean).join(', ')}</span>
+          {pOf.distancia_m != null && <span>🏪 A {textoDistancia(pOf.distancia_m)} da loja · cerca de {textoTempo(pOf.tempo_s)} até lá</span>}
+          <span className="muted">Entregar no bairro: {pOf.bairro || 'informado após aceitar'}</span>
+        </div>
+        <button type="button" className="btn btn-primario ent-grande" disabled={ocupado} onClick={() => { setTratadas((x) => new Set(x).add(pOf.id)); setOferta(null); setAberto(true); aceitar(pOf.id); }}>
+          Aceitar corrida
+        </button>
+        <button type="button" className="btn" style={{ width: '100%', padding: 14 }} onClick={() => responder(pOf.id, 'recusada')}>
+          Recusar
+        </button>
+      </div>
+    </div>
+  );
 
   const gaveta = menu && (
     <>
@@ -398,6 +500,7 @@ function Painel({ dados, recarregar, aoSair }) {
     return (
       <>
         {gaveta}
+        {ofertaUI}
         <div className="ent-tela-topo">
           <button type="button" className="ent-redondo" aria-label="Voltar" onClick={() => setTela('mapa')}>←</button>
           <h1>{titulos[tela]}</h1>
@@ -461,85 +564,120 @@ function Painel({ dados, recarregar, aoSair }) {
     );
   }
 
+  const textoStatus = precisaDocs
+    ? docs === 'em_analise'
+      ? 'Documentos em análise'
+      : docs === 'reprovado'
+      ? 'Documentos recusados'
+      : 'Envie seus documentos'
+    : ativas.length > 0
+    ? `${ativas.length} entrega${ativas.length > 1 ? 's' : ''} em andamento`
+    : ent.online
+    ? 'Online · procurando corridas…'
+    : `Olá, ${primeiro}. Você está offline`;
+  const pendenciasAbertas = pendencias.filter((x) => !(x.id === 'docs' && docs === 'em_analise'));
+
   return (
-    <div>
+    <div className="ent-cheia">
       {gaveta}
-      <div className="ent-mapa">
-        <div className="ent-topo">
-          <button type="button" className="ent-redondo" aria-label="Abrir menu" onClick={() => setMenu(true)}>☰</button>
-          <button type="button" className={conta.saldo < 0 ? 'ent-saldo neg' : 'ent-saldo'} onClick={() => setTela('ganhos')}>{saldoTxt}</button>
-          <a className="ent-redondo" aria-label="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">?</a>
-        </div>
-        <Mapa pontos={pontosMapa} altura={altMapa} rotuloMapa="Mapa com a sua posição e as lojas com corrida" />
+      {ofertaUI}
+      <Mapa pontos={pontosMapa} altura={altMapa} rotuloMapa="Mapa com a sua posição e as lojas com corrida" />
+      <div className="ent-topo">
+        <button type="button" className="ent-redondo" aria-label="Abrir menu" onClick={() => setMenu(true)}>☰{pendenciasAbertas.length > 0 && <span className="ent-ponto" />}</button>
+        <button type="button" className={conta.saldo < 0 ? 'ent-saldo neg' : 'ent-saldo'} onClick={() => setTela('ganhos')}>{saldoTxt}</button>
+        <a className="ent-redondo" aria-label="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">?</a>
       </div>
 
-      <div className="ent-folha">
-        {ativas.length === 0 && (
-          <>
-            <div className="ent-status">
-              {precisaDocs
-                ? docs === 'em_analise'
-                  ? 'Seus documentos estão em análise.'
-                  : docs === 'reprovado'
-                  ? 'Seus documentos foram recusados.'
-                  : `Olá, ${primeiro}! Envie seus documentos para começar.`
-                : ent.online
-                ? 'Você está online. Procurando corridas…'
-                : `Olá, ${primeiro}. Você está offline.`}
+      <div className={aberto ? 'ent-gav ent-gav-aberta' : 'ent-gav'}>
+        <button type="button" className="ent-alca" aria-expanded={aberto} onClick={() => setAberto((x) => !x)}>
+          <span className="ent-alca-barra" />
+          <span className="ent-linha" style={{ width: '100%' }}>
+            <span style={{ fontWeight: 600 }}>{textoStatus}</span>
+            {pendenciasAbertas.length > 0 && <span className="ent-etiqueta">{pendenciasAbertas.length} pendência{pendenciasAbertas.length > 1 ? 's' : ''}</span>}
+            <span aria-hidden="true">{aberto ? '⌄' : '⌃'}</span>
+          </span>
+        </button>
+
+        {aberto && (
+          <div className="ent-gav-corpo">
+            <div className="ent-indic">
+              <div>
+                <span className="muted">Taxa de aceitação</span>
+                <strong>{ind.aceitacao != null ? `${ind.aceitacao}%` : '—'}</strong>
+              </div>
+              <div>
+                <span className="muted">Taxa de finalização</span>
+                <strong>{ind.finalizacao != null ? `${ind.finalizacao}%` : '—'}</strong>
+              </div>
             </div>
-            {precisaDocs && docs !== 'em_analise' && (
+            {(ind.aceitacao == null || ind.finalizacao == null) && <small>Os indicadores aparecem depois de algumas corridas.</small>}
+
+            {pendenciasAbertas.map((x) => (
+              <div key={x.id} className="ent-aviso ent-linha">
+                <span style={{ flex: 1 }}>{x.texto}</span>
+                <button type="button" className="btn btn-pequeno" onClick={() => setTela(x.tela)}>{x.acao}</button>
+              </div>
+            ))}
+
+            {levando && <div className="aviso" role="status">Sua localização está sendo compartilhada com o cliente e com a loja. Mantenha esta tela aberta até entregar.</div>}
+            {gpsErro && <div className="aviso aviso-erro" role="alert">{gpsErro}</div>}
+            {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
+
+            {ativas.map((p) => (
+              <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
+            ))}
+
+            {ent.online && !semAprovacao && (
+              <section aria-label="Corridas disponíveis" style={{ display: 'grid', gap: 10 }}>
+                <strong>Corridas disponíveis</strong>
+                {semGps && disponiveis.length > 0 && (
+                  <small>Libere o GPS do navegador para ver a distância até a loja. Sua localização não é enviada: ela só é usada nesta tela.</small>
+                )}
+                {disponiveis.length === 0 ? (
+                  <span className="muted">Nenhuma corrida agora. Quando chegar uma, ela aparece em tela cheia com som.</span>
+                ) : (
+                  corridas.map((p) => (
+                    <div key={p.id} className="ent-bloco">
+                      <div className="ent-linha">
+                        <strong>{p.dl_lojas?.nome} · pedido {p.numero}</strong>
+                        <strong style={{ color: 'var(--amarelo)', fontSize: 18 }}>{brl(p.taxa_entrega)}</strong>
+                      </div>
+                      <small>
+                        Retirar: {[p.dl_lojas?.endereco, p.dl_lojas?.bairro].filter(Boolean).join(', ')}
+                        <br />
+                        Entregar no bairro: {p.bairro || 'informado após aceitar'}
+                      </small>
+                      {p.distancia_m != null && <div style={{ fontSize: 14, fontWeight: 600 }}>🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá</div>}
+                      <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => aceitar(p.id)}>Aceitar corrida</button>
+                    </div>
+                  ))
+                )}
+              </section>
+            )}
+          </div>
+        )}
+
+        <div className="ent-gav-rodape">
+          {precisaDocs ? (
+            docs === 'em_analise' ? (
+              <button type="button" className="btn ent-grande" onClick={() => setTela('documentos')}>Ver meus documentos</button>
+            ) : (
               <button type="button" className="btn btn-primario ent-grande" onClick={() => setTela('documentos')}>
                 {docs === 'reprovado' ? 'Corrigir documentos' : 'Enviar documentos'}
               </button>
-            )}
-            {!precisaDocs && (
-              <button type="button" className="btn btn-primario ent-grande" onClick={alternarOnline} disabled={ocupado} aria-pressed={ent.online}>
-                {ent.online ? 'Desconectar' : 'Conectar'}
-              </button>
-            )}
-          </>
-        )}
-        {levando && <div className="aviso" role="status">Sua localização está sendo compartilhada com o cliente e com a loja. Mantenha esta tela aberta até entregar.</div>}
-        {gpsErro && <div className="aviso aviso-erro" role="alert">{gpsErro}</div>}
-        {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
-
-        {ativas.map((p) => (
-          <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
-        ))}
-
-        {ent.online && !semAprovacao && (
-          <section aria-label="Corridas disponíveis" style={{ display: 'grid', gap: 10 }}>
-            <strong>Corridas disponíveis</strong>
-            {semGps && disponiveis.length > 0 && (
-              <small>Libere o GPS do navegador para ver a distância até a loja. Sua localização não é enviada: ela só é usada nesta tela.</small>
-            )}
-            {disponiveis.length === 0 ? (
-              <span className="muted">Nenhuma corrida agora. Esta tela atualiza sozinha.</span>
-            ) : (
-              corridas.map((p) => (
-                <div key={p.id} className="ent-bloco">
-                  <div className="ent-linha">
-                    <strong>{p.dl_lojas?.nome} · pedido {p.numero}</strong>
-                    <strong style={{ color: 'var(--amarelo)', fontSize: 18 }}>{brl(p.taxa_entrega)}</strong>
-                  </div>
-                  <small>
-                    Retirar: {[p.dl_lojas?.endereco, p.dl_lojas?.bairro].filter(Boolean).join(', ')}
-                    <br />
-                    Entregar no bairro: {p.bairro || 'informado após aceitar'}
-                  </small>
-                  {p.distancia_m != null && <div style={{ fontSize: 14, fontWeight: 600 }}>🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá</div>}
-                  <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => aceitar(p.id)}>Aceitar corrida</button>
-                </div>
-              ))
-            )}
-          </section>
-        )}
-
-        {ativas.length > 0 && ent.online && (
-          <button type="button" className="btn" onClick={() => window.confirm('Ao se desconectar você deixa de receber novas corridas. As que já aceitou continuam.') && alternarOnline()} disabled={ocupado}>
-            Desconectar
-          </button>
-        )}
+            )
+          ) : (
+            <button
+              type="button"
+              className={ent.online && ativas.length > 0 ? 'btn ent-grande' : 'btn btn-primario ent-grande'}
+              onClick={ent.online ? () => (ativas.length === 0 || window.confirm('Ao se desconectar você deixa de receber novas corridas. As que já aceitou continuam.')) && alternarOnline() : ligar}
+              disabled={ocupado}
+              aria-pressed={ent.online}
+            >
+              {ent.online ? 'Desconectar' : 'Conectar'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

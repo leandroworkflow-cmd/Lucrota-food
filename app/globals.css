@@ -1929,3 +1929,28 @@ body:has(.nav-inf) .rodape {
 .ent-etiqueta { background: var(--amarelo); color: #2a1050; border-radius: 999px; font-size: 12px; font-weight: 700; padding: 2px 8px; }
 .ent-pagina { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; display: grid; gap: 16px; }
 .ent .leaflet-top.leaflet-left { top: 70px; }
+
+/* Tela principal do entregador: mapa cheio + painel que sobe e desce */
+.ent-cheia { position: fixed; inset: 0; overflow: hidden; background: var(--e-fundo); }
+.ent-cheia .mapa { position: absolute; inset: 0; border-radius: 0; }
+.ent-cheia .ent-topo { z-index: 460; }
+.ent .leaflet-bottom { bottom: auto; top: 62px; }
+.ent-gav { position: absolute; z-index: 450; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 84dvh; background: var(--e-folha); border-radius: 26px 26px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45); }
+.ent-alca { display: grid; gap: 10px; justify-items: center; width: 100%; background: none; border: 0; color: var(--e-texto); font: inherit; font-size: 16px; padding: 10px 18px 6px; cursor: pointer; }
+.ent-alca-barra { width: 44px; height: 5px; border-radius: 3px; background: var(--e-borda); }
+.ent-gav-corpo { overflow-y: auto; min-height: 0; padding: 8px 16px 10px; display: grid; gap: 12px; align-content: start; overscroll-behavior: contain; }
+.ent-gav-rodape { padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); }
+.ent-gav .cartao { background: #120b1e; }
+.ent-indic { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #120b1e; border-radius: 16px; padding: 14px; text-align: center; }
+.ent-indic > div { display: grid; gap: 4px; }
+.ent-indic strong { font-size: 26px; }
+.ent-ponto { position: absolute; top: 4px; right: 4px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b7f; border: 2px solid var(--e-folha); }
+.ent-redondo { position: relative; }
+.ent-oferta-fundo { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, 0.7); display: flex; align-items: flex-end; justify-content: center; }
+.ent-oferta { width: min(520px, 100%); background: var(--e-folha); border-radius: 26px 26px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); display: grid; gap: 14px; animation: ent-sobe 0.22s ease-out; }
+.ent-oferta-valor { font-size: 44px; font-weight: 800; color: var(--amarelo); line-height: 1; }
+.ent-contagem { background: var(--amarelo); color: #2a1050; font-weight: 800; border-radius: 999px; padding: 4px 12px; }
+.ent-oferta-barra { height: 8px; border-radius: 4px; background: var(--e-borda); overflow: hidden; }
+.ent-oferta-barra > div { height: 100%; background: var(--amarelo); transition: width 0.3s linear; }
+@keyframes ent-sobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ent-oferta { animation: none; } .ent-oferta-barra > div { transition: none; } }

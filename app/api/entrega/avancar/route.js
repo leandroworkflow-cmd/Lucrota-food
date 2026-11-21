@@ -1,3 +1,4 @@
+import { registrarOferta } from '../../../../lib/ofertas-servidor';
 import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
@@ -51,7 +52,11 @@ export async function POST(request) {
     if (!count) await admin.from('dl_localizacoes').delete().eq('entregador_id', ent.id);
   }
 
-  if (body.acao === 'entreguei') await registrarLancamentos(admin, pedido.id);
+  if (body.acao === 'entreguei') {
+    await registrarLancamentos(admin, pedido.id);
+    await registrarOferta(admin, ent.id, pedido.id, 'concluida');
+  }
+  if (body.acao === 'desistir') await registrarOferta(admin, ent.id, pedido.id, 'desistida');
 
   const primeiroNome = ent.nome.split(' ')[0];
   if (body.acao === 'cheguei') {

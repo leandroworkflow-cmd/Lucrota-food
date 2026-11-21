@@ -185,3 +185,11 @@ Tema escuro com menu (Início, Ganhos, Documentos, Perfil, Suporte e ajuda, Conf
 Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cadastros esperando aprovação (com atalhos), hoje e este mês (pedidos entregues, vendas, ticket médio, comissão, cancelamentos), pedidos em andamento agora, gráfico dos últimos 30 dias, rede (lojas ativas, entregadores online, entregadores sem documentos), forma de pagamento e rankings de lojas e entregadores. Dias contados no horário de Brasília. Não precisa de SQL novo.
 
 **Avisos no seu celular:** na aba Painel, ative "Avisos de cadastro novo". Você recebe um aviso quando uma loja se cadastra, quando um entregador se cadastra e quando ele envia os documentos. Precisa das variáveis VAPID e ADMIN_EMAILS no Vercel (as mesmas dos outros avisos).
+
+## Tela do entregador, versão 2 (mais perto do app da 99)
+
+- **Oferta de corrida em tela cheia:** com o entregador online, a corrida mais próxima aparece num cartão grande com valor, loja, distância, **contagem de 30 segundos**, som e vibração. Aceitar ou Recusar. Se o tempo acaba, a oferta some (a corrida continua na lista "Corridas disponíveis"). Recusar tira a corrida da lista desse entregador. O som só toca depois que o entregador toca em qualquer lugar da tela uma vez (regra do navegador).
+- **Mapa em tela cheia** e **painel que sobe e desce** (toque na alça). O botão **Conectar / Desconectar** fica fixo no rodapé. O painel abre sozinho quando começa uma entrega.
+- **Taxa de aceitação** (corridas pegas entre as oferecidas) e **taxa de finalização** (concluídas entre as pegas que terminaram; cancelamento do cliente não conta contra o entregador). Aparecem depois de 5 ofertas e 3 corridas.
+- **Pendências:** documentos (enviar, corrigir, em análise), chave Pix não cadastrada e valor a pagar à plataforma, cada uma com o botão que leva à tela certa.
+- Rode o **SQL 17** (tabela `dl_ofertas`). Sem ele a tela funciona, mas os indicadores ficam vazios.

@@ -1,4 +1,5 @@
 import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
+import { indicadores, pendenciasDoEntregador } from '../../../../lib/ofertas';
 import { entregadorDaRequisicao, erro } from '../../../../lib/entrega-servidor';
 
 export const runtime = 'nodejs';
@@ -35,8 +36,10 @@ export async function GET(request) {
     if (ent.loja_id) q = q.eq('loja_id', ent.loja_id);
     const { data, error: e2 } = await q;
     if (e2) return erro('Não consegui consultar agora.', 502);
+    const { data: recus } = await admin.from('dl_ofertas').select('pedido_id').eq('entregador_id', ent.id).eq('resposta', 'recusada');
+    const recusadas = new Set((recus || []).map((r) => r.pedido_id));
     disponiveis = (data || [])
-      .filter((p) => entregadorPodeVer(ent, p, p.dl_lojas))
+      .filter((p) => !recusadas.has(p.id) && entregadorPodeVer(ent, p, p.dl_lojas))
       .map(({ entrega, entregador_id, ...p }) => p);
   }
 
@@ -52,6 +55,10 @@ export async function GET(request) {
     extrato: (lanc || []).slice(0, 8),
     chave_pix: ent.chave_pix || '',
   };
+
+  const { data: ofs } = await admin.from('dl_ofertas').select('resposta').eq('entregador_id', ent.id).order('atualizado_em', { ascending: false }).limit(100);
+  const ind = indicadores(ofs || []);
+  const pendencias = pendenciasDoEntregador({ ent: { exclusivo: Boolean(ent.loja_id), docs_status: ent.docs_status }, conta });
 
   let lojaNome = null;
   if (ent.loja_id) {
@@ -71,6 +78,8 @@ export async function GET(request) {
         docs_status: ent.docs_status,
       },
       conta,
+      indicadores: ind,
+      pendencias,
       ativas: ativas || [],
       disponiveis,
     },

@@ -1,6 +1,7 @@
 import { avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
+import { registrarOferta } from '../../../../lib/ofertas-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
 export const runtime = 'nodejs';
@@ -38,6 +39,7 @@ export async function POST(request) {
     .maybeSingle();
   if (error) return erro('Não consegui aceitar agora. Tente de novo.', 502);
   if (!pego) return erro('Outro entregador pegou essa corrida primeiro.', 409);
+  await registrarOferta(admin, ent.id, pedido.id, 'aceita');
   await avisarUsuarios(admin, [pedido.dl_lojas?.dono_id].filter(Boolean), {
     ...avisoParaLoja('aceitou', { numero: pedido.numero, entregadorNome: ent.nome.split(' ')[0] }),
     url: '/painel',
