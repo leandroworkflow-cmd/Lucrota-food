@@ -250,8 +250,8 @@ export default function Admin() {
               <>
                 <PainelNumeros aoAbrir={setAba} />
                 <AvisosPush
-                  titulo="Avisos de cadastro novo"
-                  descricao="Receba no celular um aviso quando uma loja ou um entregador se cadastrar ou enviar documentos."
+                  titulo="Avisos no celular"
+                  descricao="Receba um aviso na hora quando alguém pedir um saque, uma loja ou um entregador se cadastrar, ou um entregador enviar documentos. Ative em cada aparelho que você usa."
                   inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
                   desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
                 />
@@ -262,8 +262,8 @@ export default function Admin() {
               <>
                 <SaquesAdmin dados={saques} recarregar={async () => { await carregarSaques(); await carregar(); }} setAviso={setAviso} setErro={setErro} />
                 <AvisosPush
-                  titulo="Avisos de saque e de cadastro"
-                  descricao="Receba no celular um aviso na hora em que alguém pedir um saque. Ative em cada aparelho que você usa."
+                  titulo="Avisos no celular"
+                  descricao="Receba um aviso na hora quando alguém pedir um saque, uma loja ou um entregador se cadastrar, ou um entregador enviar documentos. Ative em cada aparelho que você usa."
                   inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
                   desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
                 />
