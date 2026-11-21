@@ -49,7 +49,8 @@ export default function PainelNumeros({ aoAbrir }) {
   if (erro) return <div className="aviso aviso-erro">{erro}</div>;
   if (!d) return <p className="muted">Carregando os números…</p>;
   const { hoje, mes, rede, andamento } = d;
-  const pendencias = rede.lojas_pendentes + rede.entregadores_analise;
+  const sq = d.saques_pendentes || { n: 0, total: 0 };
+  const pendencias = rede.lojas_pendentes + rede.entregadores_analise + sq.n;
   const agora = Object.values(andamento).reduce((t, n) => t + n, 0);
   const taxaCancel = mes.recebidos ? Math.round((mes.cancelados / mes.recebidos) * 100) : 0;
   const totalPag = Object.values(d.pagamento).reduce((t, n) => t + n, 0);
@@ -60,10 +61,12 @@ export default function PainelNumeros({ aoAbrir }) {
         <div className="aviso" role="status" style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <span>
             <b>{pendencias} cadastro{pendencias > 1 ? 's' : ''} esperando você</b>
+            {sq.n > 0 && ` · ${sq.n} saque${sq.n > 1 ? 's' : ''} para pagar (${brl(sq.total)})`}
             {rede.lojas_pendentes > 0 && ` · ${rede.lojas_pendentes} loja${rede.lojas_pendentes > 1 ? 's' : ''}`}
             {rede.entregadores_analise > 0 && ` · ${rede.entregadores_analise} entregador${rede.entregadores_analise > 1 ? 'es' : ''} com documentos`}
           </span>
           <span style={{ display: 'flex', gap: 6 }}>
+            {sq.n > 0 && <button type="button" className="btn btn-pequeno btn-amarelo" onClick={() => aoAbrir('saques')}>Ver saques</button>}
             {rede.lojas_pendentes > 0 && <button type="button" className="btn btn-pequeno btn-amarelo" onClick={() => aoAbrir('lojas')}>Ver lojas</button>}
             {rede.entregadores_analise > 0 && <button type="button" className="btn btn-pequeno btn-amarelo" onClick={() => aoAbrir('entregadores')}>Ver entregadores</button>}
           </span>

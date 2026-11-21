@@ -64,6 +64,43 @@ export async function POST(request) {
       });
       return Response.json({ ok: true });
     }
+    case 'saque_pago':
+    case 'saque_recusado': {
+      if (!uuidValido(b.id)) return erro('Requisição inválida.', 400);
+      const pago = b.acao === 'saque_pago';
+      const motivo = String(b.motivo || '').trim().slice(0, 200);
+      if (!pago && motivo.length < 3) return erro('Explique o motivo para a pessoa saber o que fazer.', 400);
+      const { data: s0 } = await admin
+        .from('dl_saques')
+        .select('conta_tipo,valor,status,dl_lojas(dono_id),dl_entregadores(user_id)')
+        .eq('id', b.id)
+        .maybeSingle();
+      if (!s0) return erro('Pedido de saque não encontrado.', 404);
+      if (s0.status !== 'pendente') return erro('Esse pedido já foi resolvido.', 409);
+      if (pago) {
+        const { error } = await admin.rpc('dl_pagar_saque', { p_saque: b.id });
+        if (error) {
+          const m = String(error.message);
+          if (m.includes('ja_resolvido')) return erro('Esse pedido já foi resolvido.', 409);
+          if (m.includes('saldo_insuficiente')) return erro('O saldo da conta ficou menor que o saque (houve um estorno ou cancelamento). Recuse o pedido e peça um novo.', 409);
+          console.error('Admin: saque falhou:', m);
+          return erro('Não consegui marcar como pago. Confira se o SQL 18 foi rodado.', 502);
+        }
+      } else {
+        const { error } = await admin.from('dl_saques').update({ status: 'recusado', motivo, resolvido_em: new Date().toISOString() }).eq('id', b.id).eq('status', 'pendente');
+        if (error) return erro('Não consegui salvar. Tente de novo.', 502);
+      }
+      const dono = s0.conta_tipo === 'loja' ? s0.dl_lojas?.dono_id : s0.dl_entregadores?.user_id;
+      const reais = Number(s0.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      if (dono) {
+        await avisarUsuarios(admin, [dono], {
+          titulo: pago ? `Saque de ${reais} pago` : 'Saque não realizado',
+          corpo: pago ? 'O Pix foi enviado para a sua chave. Confira no seu banco.' : motivo,
+          url: s0.conta_tipo === 'loja' ? '/painel/financeiro' : '/entregador',
+        });
+      }
+      return Response.json({ ok: true });
+    }
     case 'config_entrega': {
       const pct = comissaoValida(b.comissao_entrega_pct);
       if (pct === null) return erro('A parte da plataforma deve ficar entre 0% e 50%.', 400);

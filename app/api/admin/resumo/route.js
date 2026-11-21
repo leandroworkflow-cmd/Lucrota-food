@@ -27,14 +27,17 @@ export async function GET(request) {
     return Response.json({ error: 'Não consegui carregar os dados. Confira se os SQL 07, 08 e 09 foram rodados.' }, { status: 502 });
   }
 
+  const { data: sp } = await admin.from('dl_saques').select('loja_id,entregador_id,valor').eq('status', 'pendente');
+  const sacando = new Map();
+  for (const x of sp || []) sacando.set(x.loja_id ? `loja:${x.loja_id}` : `entregador:${x.entregador_id}`, (sacando.get(x.loja_id ? `loja:${x.loja_id}` : `entregador:${x.entregador_id}`) || 0) + Number(x.valor));
   const saldo = new Map((saldos.data || []).map((s) => [`${s.conta}:${s.id}`, Number(s.saldo)]));
   const nomeLoja = new Map(lojas.data.map((l) => [l.id, l.nome]));
   const nomeEnt = new Map(ents.data.map((e) => [e.id, e.nome]));
   return Response.json(
     {
       travadas: (travadas.data || []).map((t) => ({ id: t.id, numero: t.numero, cliente: t.cliente_nome, telefone: t.cliente_telefone, loja: t.dl_lojas?.nome, entregador: t.dl_entregadores?.nome })),
-      lojas: lojas.data.map((l) => ({ ...l, saldo: saldo.get(`loja:${l.id}`) || 0 })),
-      entregadores: ents.data.map((e) => ({ ...e, saldo: saldo.get(`entregador:${e.id}`) || 0 })),
+      lojas: lojas.data.map((l) => ({ ...l, saldo: saldo.get(`loja:${l.id}`) || 0, saque_pendente: sacando.get(`loja:${l.id}`) || 0 })),
+      entregadores: ents.data.map((e) => ({ ...e, saldo: saldo.get(`entregador:${e.id}`) || 0, saque_pendente: sacando.get(`entregador:${e.id}`) || 0 })),
       config: Object.fromEntries((cfg.data || []).map((c) => [c.chave, Number(c.valor)])),
       acertos: acertos.data.map((a) => ({
         id: a.id,

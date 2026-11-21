@@ -34,6 +34,7 @@ export async function GET(request) {
     lojas: new Map(lojas.data.map((l) => [l.id, l.nome])),
     entregadores: new Map(ents.data.map((e) => [e.id, e.nome])),
   });
+  const { data: sq } = await admin.from('dl_saques').select('valor').eq('status', 'pendente');
   const plat = ents.data.filter((e) => !e.loja_id);
   return Response.json(
     {
@@ -47,6 +48,7 @@ export async function GET(request) {
         entregadores_analise: plat.filter((e) => e.docs_status === 'em_analise').length,
         entregadores_sem_docs: plat.filter((e) => e.docs_status === 'sem_documentos' || e.docs_status === 'reprovado').length,
       },
+      saques_pendentes: { n: (sq || []).length, total: Math.round((sq || []).reduce((t, x) => t + Number(x.valor), 0) * 100) / 100 },
       atualizado_em: new Date().toISOString(),
     },
     { headers: { 'Cache-Control': 'no-store' } }

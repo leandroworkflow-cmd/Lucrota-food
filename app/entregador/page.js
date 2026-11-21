@@ -6,6 +6,7 @@ import Mapa from '../../components/Mapa';
 import BotaoAjuda from '../../components/BotaoAjuda';
 import Marca from '../../components/Marca';
 import Documentos from './Documentos';
+import SaqueSaldo from '../../components/SaqueSaldo';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
@@ -512,9 +513,10 @@ function Painel({ dados, recarregar, aoSair }) {
                 <span className="muted">{conta.saldo < 0 ? 'Você deve à plataforma' : 'A receber da plataforma'}</span>
                 <strong style={{ fontSize: 34, color: conta.saldo < 0 ? '#ff8f86' : undefined }}>{saldoTxt}</strong>
                 <small>
-                  Pix pelo app: a taxa de entrega é repassada a você por Pix. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
+                  Pix e cartão pelo app: a taxa de entrega entra aqui e você pode sacar por Pix quando quiser, a partir de R$ 10,00. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
                 </small>
               </div>
+              <SaqueSaldo conta="entregador" chave={conta.chave_pix} aoMudar={recarregar} />
               <div className="ent-bloco">
                 <strong>Últimos lançamentos</strong>
                 {conta.extrato.length === 0 && <span className="muted">Nada por aqui ainda. Suas entregas aparecem nesta lista.</span>}

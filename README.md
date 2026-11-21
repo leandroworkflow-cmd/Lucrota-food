@@ -193,3 +193,13 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - **Taxa de aceitação** (corridas pegas entre as oferecidas) e **taxa de finalização** (concluídas entre as pegas que terminaram; cancelamento do cliente não conta contra o entregador). Aparecem depois de 5 ofertas e 3 corridas.
 - **Pendências:** documentos (enviar, corrigir, em análise), chave Pix não cadastrada e valor a pagar à plataforma, cada uma com o botão que leva à tela certa.
 - Rode o **SQL 17** (tabela `dl_ofertas`). Sem ele a tela funciona, mas os indicadores ficam vazios.
+
+
+## Saque por Pix (loja e entregador)
+
+- Rode o **SQL 18** (tabela `dl_saques` e as funções `dl_pedir_saque` e `dl_pagar_saque`).
+- **Quem pede:** o lojista em Financeiro e o entregador em Ganhos tocam em **Sacar saldo**, escolhem o valor (mínimo R$ 10,00, **sem limite de pedidos por dia**), confirmam a chave Pix e enviam. Dá para cancelar enquanto não foi pago. O valor pedido sai do "disponível" na hora, então não dá para pedir o mesmo dinheiro duas vezes (o banco trava conta e valor).
+- **Você:** `/admin` > **Saques**. Cada pedido mostra nome, valor, chave Pix (com botões para copiar a chave e o valor) e há quanto tempo está esperando. Você faz o Pix no seu banco e toca em **Já paguei**: o valor sai da conta corrente da pessoa e ela recebe um aviso. **Recusar** pede um motivo, que a pessoa lê.
+- **Avisos:** quando alguém pede, chega uma notificação no seu celular (ative **Avisos** na aba Saques ou Painel, em cada aparelho). No `/admin` aberto, a fila atualiza a cada 15 s, o título da aba mostra a contagem, "(2) Administração", e toca um bip quando chega pedido novo. A notificação abre direto em `/admin?aba=saques`.
+- Contas com saque pendente saem da lista de Repasses da semana, para você não pagar duas vezes.
+- Este fluxo é manual: o Pix é feito por você. O Pix automático depende de um parceiro de pagamentos autorizado (veja a conversa sobre split e subcontas).

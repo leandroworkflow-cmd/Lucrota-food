@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePainel } from '../../../components/PainelShell';
+import SaqueSaldo from '../../../components/SaqueSaldo';
 import { brl } from '../../../lib/format';
 import { somaSaldo } from '../../../lib/partilha';
 import { supabase } from '../../../lib/supabase';
@@ -62,11 +63,13 @@ export default function Conta() {
                 {saldo < 0 ? `− ${brl(-saldo)}` : brl(saldo)}
               </div>
               <p className="muted" style={{ margin: 0 }}>
-                {saldo > 0 && 'A plataforma repassa esse valor por Pix para a sua chave.'}
+                {saldo > 0 && 'Você pode pedir o saque por Pix a qualquer momento, a partir de R$ 10,00.'}
                 {saldo < 0 && 'Você deve esse valor à plataforma. Ele é abatido dos seus próximos Pix pelo app ou cobrado por Pix.'}
                 {saldo === 0 && 'Tudo acertado por enquanto.'}
               </p>
             </section>
+
+            <SaqueSaldo conta="loja" chave={loja.chave_pix} />
 
             {linhas.length > 0 && (
               <div style={{ overflowX: 'auto' }}>

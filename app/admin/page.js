@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Marca from '../../components/Marca';
 import AvisosPush from '../../components/AvisosPush';
 import PainelNumeros from '../../components/PainelNumeros';
+import SaquesAdmin from '../../components/SaquesAdmin';
 import RevisaoDocumentos from '../../components/RevisaoDocumentos';
 import { STATUS_DOCS } from '../../lib/documentos';
 import { formatarCnpj } from '../../lib/cnpj';
@@ -14,6 +15,7 @@ import { brl } from '../../lib/format';
 
 const ABAS = [
   ['painel', 'Painel'],
+  ['saques', 'Saques'],
   ['repasses', 'Repasses'],
   ['lojas', 'Lojas'],
   ['entregadores', 'Entregadores'],
@@ -39,6 +41,7 @@ export default function Admin() {
   const [aba, setAba] = useState('painel');
   const [ocupado, setOcupado] = useState(false);
   const [revisando, setRevisando] = useState(null);
+  const [saques, setSaques] = useState(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -52,6 +55,44 @@ export default function Admin() {
   useEffect(() => {
     if (auth.status === 'in') carregar();
   }, [auth.status, carregar]);
+
+
+  // Fila de saques: confere a cada 15 s, mostra a contagem no título da aba do navegador e dá um bip quando chega pedido novo.
+  const ultimoN = useRef(null);
+  const carregarSaques = useCallback(async () => {
+    try {
+      const r = await api('/api/admin/saques');
+      setSaques(r);
+      const n = r.pendentes.length;
+      document.title = `${n > 0 ? `(${n}) ` : ''}Administração | Brokê`;
+      if (ultimoN.current !== null && n > ultimoN.current) {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          o.frequency.value = 880;
+          o.connect(ctx.destination);
+          o.start();
+          o.stop(ctx.currentTime + 0.4);
+        } catch {}
+      }
+      ultimoN.current = n;
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (auth.status !== 'in') return undefined;
+    carregarSaques();
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        carregarSaques();
+        carregar();
+      }
+    }, 15000);
+    return () => clearInterval(id);
+  }, [auth.status, carregarSaques, carregar]);
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get('aba');
+    if (a && ABAS.some(([k]) => k === a)) setAba(a);
+  }, []);
 
   async function consultarCnpj(l) {
     setAviso('');
@@ -84,8 +125,8 @@ export default function Admin() {
   const contas = useMemo(() => {
     if (!dados) return [];
     return [
-      ...dados.lojas.map((l) => ({ conta: 'loja', id: l.id, nome: l.nome, chave_pix: l.chave_pix, saldo: l.saldo })),
-      ...dados.entregadores.map((e) => ({ conta: 'entregador', id: e.id, nome: e.nome, chave_pix: e.chave_pix, saldo: e.saldo })),
+      ...dados.lojas.filter((l) => !l.saque_pendente).map((l) => ({ conta: 'loja', id: l.id, nome: l.nome, chave_pix: l.chave_pix, saldo: l.saldo })),
+      ...dados.entregadores.filter((e) => !e.saque_pendente).map((e) => ({ conta: 'entregador', id: e.id, nome: e.nome, chave_pix: e.chave_pix, saldo: e.saldo })),
     ];
   }, [dados]);
   const plano = useMemo(() => planoRepasse(contas), [contas]);
@@ -176,6 +217,7 @@ export default function Admin() {
               {ABAS.map(([id, rotulo]) => (
                 <button key={id} type="button" role="tab" className="opcao" aria-pressed={aba === id} aria-selected={aba === id} onClick={() => setAba(id)}>
                   {rotulo}
+                  {id === 'saques' && saques?.pendentes.length > 0 ? ` (${saques.pendentes.length} para pagar)` : ''}
                   {id === 'lojas' && dados.lojas.some((l) => !l.ativa) ? ` (${dados.lojas.filter((l) => !l.ativa).length} novas)` : ''}
                   {id === 'entregadores' && dados.entregadores.some((e) => !e.loja_id && e.docs_status === 'em_analise') ? ` (${dados.entregadores.filter((e) => !e.loja_id && e.docs_status === 'em_analise').length} para analisar)` : ''}
                 </button>
@@ -216,6 +258,18 @@ export default function Admin() {
               </>
             )}
 
+            {aba === 'saques' && (
+              <>
+                <SaquesAdmin dados={saques} recarregar={async () => { await carregarSaques(); await carregar(); }} setAviso={setAviso} setErro={setErro} />
+                <AvisosPush
+                  titulo="Avisos de saque e de cadastro"
+                  descricao="Receba no celular um aviso na hora em que alguém pedir um saque. Ative em cada aparelho que você usa."
+                  inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
+                  desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
+                />
+              </>
+            )}
+
             {aba === 'repasses' && (
               <>
                 <section className="cartao">
@@ -227,6 +281,7 @@ export default function Admin() {
                   <p className="muted" style={{ margin: 0 }}>
                     Faça os Pix no app do seu banco e depois marque como pago aqui. Saldos abaixo de R$ 1,00 ficam acumulando para a próxima semana.
                     {pendentes > 0 && ` Há ${pendentes} cadastro(s) esperando aprovação.`}
+                    {saques?.pendentes.length > 0 && ` ${saques.pendentes.length} conta(s) com saque pedido ficam fora desta lista: pague na aba Saques.`}
                   </p>
                 </section>
 
