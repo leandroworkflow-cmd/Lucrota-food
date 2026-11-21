@@ -153,3 +153,20 @@ Limites dos serviços gratuitos: o mapa e o OSRM públicos servem para começar 
 2. Cada pedido nasce com um código de 4 números, visível só para o cliente na tela do pedido (do aceite até a entrega).
 3. O entregador toca em "Entreguei", digita o código que o cliente informa e confirma. Sem o código certo, a entrega não conclui. Loja que entrega sozinha também confirma com o código.
 4. Após 5 erros, o pedido trava. No `/admin` aparece "Entregas travadas": o suporte fala com o cliente e escolhe "Liberar tentativas" ou "Concluir entrega".
+
+
+## Documentos do entregador (CNH, documento da moto e selfie)
+
+Entregador **da plataforma** (sem código de loja) só recebe corridas depois de enviar os documentos e você aprovar em `/admin` → Entregadores. Entregador convidado por uma loja não precisa.
+
+- Moto e carro: CNH, documento do veículo (CRLV), selfie ao vivo, mais nome na CNH, validade, categoria e placa. Bicicleta e a pé: só a selfie.
+- Rode o **SQL 14** (cria o bucket privado `dl-documentos`, a tabela `dl_documentos` e as colunas novas). Atenção: entregadores da plataforma já aprovados voltam a "sem documentos" e precisam enviar.
+- Em `/admin`, o botão **Analisar** mostra selfie, CNH e documento da moto lado a lado (links que expiram em 5 min), os dados digitados e os alertas automáticos. Você aprova ou recusa com motivo; o entregador recebe a notificação.
+- Regras automáticas (grátis): CNH vencida, categoria A para moto, placa válida, nome da CNH combinando com o cadastro.
+- **Reconhecimento facial:** hoje a comparação selfie × CNH é humana. Para automatizar é preciso contratar um serviço de biometria (unico, idwall, AWS Rekognition…). O Claude não identifica nem compara rostos.
+- **IA para ler os documentos (opcional):** `IA_PROVEDOR=claude` + `ANTHROPIC_API_KEY` (+ `ANTHROPIC_MODEL`, padrão `claude-haiku-5-5`) faz o Claude ler CNH e CRLV e sinalizar divergências. Nunca aprova sozinho. Sem essas variáveis (padrão `nenhum`), tudo continua funcionando sem custo.
+- Não use IAs gratuitas (como o Gemini grátis) com documentos: os termos delas permitem usar o conteúdo para melhorar produtos e revisão humana.
+
+## Tela do entregador
+
+Tema escuro com menu (Início, Ganhos, Documentos, Perfil, Suporte e ajuda, Configurações), saldo no topo, mapa com as lojas que têm corrida e botão grande Conectar/Desconectar.

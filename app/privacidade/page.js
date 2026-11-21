@@ -35,9 +35,26 @@ export default function Privacidade() {
             recebidos.
           </li>
           <li>
+            <strong>Entregadores da plataforma:</strong> nome, telefone, veículo, placa, foto da CNH (e os dados dela:
+            nome, validade e categoria), foto do documento do veículo e uma selfie tirada na hora. São dados
+            pessoais, e a selfie é dado biométrico sensível. Pedimos o seu consentimento específico no envio.
+          </li>
+          <li>
             <strong>Avisos no celular (opcional):</strong> dados técnicos de entrega das notificações, se a loja ativá-las.
           </li>
         </ul>
+
+        <h2>Documentos e selfie dos entregadores</h2>
+        <p>
+          Usamos os documentos e a selfie só para conferir a identidade e a habilitação do entregador antes de liberar
+          corridas, para a segurança de clientes e lojas. As fotos ficam em área privada e só a nossa equipe autorizada
+          as vê. A comparação entre a selfie e a foto da CNH é feita por uma pessoa, e a decisão de aprovar ou recusar
+          também: nenhum cadastro é recusado só por um sistema automático. Se um dia usarmos um serviço automático de
+          leitura de documentos ou de reconhecimento facial, vamos avisar aqui e pedir novo consentimento. Os
+          documentos não são enviados a ferramentas de inteligência artificial gratuitas e não são usados para treinar
+          modelos. Você pode retirar o consentimento e pedir a exclusão das fotos a qualquer momento; sem elas, não é
+          possível atuar como entregador da plataforma.
+        </p>
 
         <h2>Para que usamos</h2>
         <p>
@@ -60,7 +77,7 @@ export default function Privacidade() {
 
         <h2>Por quanto tempo guardamos</h2>
         <p>
-          Os pedidos ficam guardados pelo tempo necessário para o funcionamento do serviço, para a cobrança de
+          Os documentos de quem foi recusado ou deixou a plataforma são apagados a pedido. Os pedidos ficam guardados pelo tempo necessário para o funcionamento do serviço, para a cobrança de
           comissões e para cumprir obrigações legais.
         </p>
 

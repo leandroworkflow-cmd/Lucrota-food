@@ -57,7 +57,7 @@ export default function Termos() {
         <h2>Entregadores</h2>
         <p>
           Entregadores atuam como autônomos, escolhendo quando e quais entregas aceitar. Não há vínculo de
-          emprego com a plataforma. As condições serão detalhadas quando esse recurso for liberado.
+          emprego com a plataforma. Para atuar pela plataforma, o entregador precisa ter CNH válida na categoria do veículo, documento do veículo em dia e passar pela conferência de identidade (documentos e selfie). Informações falsas ou documentos de terceiros levam ao bloqueio da conta. Entregadores convidados por uma loja seguem as regras combinadas com ela.
         </p>
 
         <h2>Responsabilidades</h2>

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Marca from '../../components/Marca';
+import RevisaoDocumentos from '../../components/RevisaoDocumentos';
+import { STATUS_DOCS } from '../../lib/documentos';
 import { csvRepasses, planoRepasse } from '../../lib/admin';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
@@ -32,6 +34,7 @@ export default function Admin() {
   const [aviso, setAviso] = useState('');
   const [aba, setAba] = useState('repasses');
   const [ocupado, setOcupado] = useState(false);
+  const [revisando, setRevisando] = useState(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -71,7 +74,7 @@ export default function Admin() {
     ];
   }, [dados]);
   const plano = useMemo(() => planoRepasse(contas), [contas]);
-  const pendentes = dados ? dados.lojas.filter((l) => !l.ativa).length + dados.entregadores.filter((e) => !e.loja_id && !e.aprovado).length : 0;
+  const pendentes = dados ? dados.lojas.filter((l) => !l.ativa).length + dados.entregadores.filter((e) => !e.loja_id && e.docs_status === 'em_analise').length : 0;
 
   const cabecalho = (
     <header className="topo">
@@ -159,7 +162,7 @@ export default function Admin() {
                 <button key={id} type="button" role="tab" className="opcao" aria-pressed={aba === id} aria-selected={aba === id} onClick={() => setAba(id)}>
                   {rotulo}
                   {id === 'lojas' && dados.lojas.some((l) => !l.ativa) ? ` (${dados.lojas.filter((l) => !l.ativa).length} novas)` : ''}
-                  {id === 'entregadores' && dados.entregadores.some((e) => !e.loja_id && !e.aprovado) ? ` (${dados.entregadores.filter((e) => !e.loja_id && !e.aprovado).length} novos)` : ''}
+                  {id === 'entregadores' && dados.entregadores.some((e) => !e.loja_id && e.docs_status === 'em_analise') ? ` (${dados.entregadores.filter((e) => !e.loja_id && e.docs_status === 'em_analise').length} para analisar)` : ''}
                 </button>
               ))}
             </div>
@@ -306,7 +309,7 @@ export default function Admin() {
             {aba === 'entregadores' && (
               <section className="cartao">
                 <h2>Entregadores</h2>
-                <p className="muted" style={{ margin: 0 }}>Entregadores de uma loja (cadastrados com o código dela) não precisam de aprovação.</p>
+                <p className="muted" style={{ margin: 0 }}>Entregadores da plataforma precisam enviar CNH, documento da moto e selfie, e você aprova depois de conferir. Entregadores de uma loja (cadastrados com o código dela) não precisam.</p>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="tabela-simples">
                     <thead>
@@ -324,9 +327,19 @@ export default function Admin() {
                               {loja ? (
                                 <span className="muted">Sem aprovação</span>
                               ) : (
-                                <button type="button" className={e.aprovado ? 'btn btn-pequeno' : 'btn btn-pequeno btn-amarelo'} disabled={ocupado} onClick={() => acao({ acao: 'entregador_aprovado', id: e.id, aprovado: !e.aprovado }, e.aprovado ? `${e.nome} foi bloqueado.` : `${e.nome} foi aprovado.`)}>
-                                  {e.aprovado ? 'Aprovado (bloquear)' : 'Aprovar'}
-                                </button>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                  <span className="muted" style={{ fontSize: 13 }}>{STATUS_DOCS[e.docs_status] || e.docs_status}</span>
+                                  {e.docs_status !== 'sem_documentos' && (
+                                    <button type="button" className={e.docs_status === 'em_analise' ? 'btn btn-pequeno btn-amarelo' : 'btn btn-pequeno'} onClick={() => setRevisando(e)}>
+                                      {e.docs_status === 'em_analise' ? 'Analisar' : 'Ver documentos'}
+                                    </button>
+                                  )}
+                                  {e.aprovado && (
+                                    <button type="button" className="btn btn-pequeno" disabled={ocupado} onClick={() => acao({ acao: 'entregador_aprovado', id: e.id, aprovado: false }, `${e.nome} foi bloqueado.`)}>
+                                      Bloquear
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -335,6 +348,14 @@ export default function Admin() {
                     </tbody>
                   </table>
                 </div>
+                {revisando && (
+                  <RevisaoDocumentos
+                    id={revisando.id}
+                    nome={revisando.nome}
+                    aoFechar={() => setRevisando(null)}
+                    aoDecidir={async (msg) => { setRevisando(null); setAviso(msg); await carregar(); }}
+                  />
+                )}
                 {dados.entregadores.length === 0 && <p className="muted" style={{ margin: 0 }}>Nenhum entregador cadastrado ainda.</p>}
               </section>
             )}

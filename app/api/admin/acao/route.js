@@ -32,8 +32,32 @@ export async function POST(request) {
     }
     case 'entregador_aprovado': {
       if (!uuidValido(b.id) || typeof b.aprovado !== 'boolean') return erro('Requisição inválida.', 400);
+      if (b.aprovado) {
+        const { data: e0 } = await admin.from('dl_entregadores').select('loja_id,docs_status').eq('id', b.id).maybeSingle();
+        if (e0 && !e0.loja_id && e0.docs_status !== 'aprovado') return erro('Aprove os documentos do entregador antes de liberá-lo.', 409);
+      }
       const { error } = await admin.from('dl_entregadores').update({ aprovado: b.aprovado, ...(b.aprovado ? {} : { online: false }) }).eq('id', b.id);
       if (error) return erro('Não consegui salvar. Tente de novo.', 502);
+      return Response.json({ ok: true });
+    }
+    case 'docs_decisao': {
+      if (!uuidValido(b.id) || !['aprovar', 'reprovar'].includes(b.decisao)) return erro('Requisição inválida.', 400);
+      const motivo = String(b.motivo || '').trim().slice(0, 200);
+      if (b.decisao === 'reprovar' && motivo.length < 3) return erro('Explique o motivo para o entregador corrigir.', 400);
+      const { data: e0 } = await admin.from('dl_entregadores').select('user_id,loja_id,docs_status').eq('id', b.id).maybeSingle();
+      if (!e0) return erro('Entregador não encontrado.', 404);
+      if (e0.docs_status !== 'em_analise') return erro('Esses documentos não estão aguardando análise.', 409);
+      const ok = b.decisao === 'aprovar';
+      const { error } = await admin
+        .from('dl_entregadores')
+        .update(ok ? { docs_status: 'aprovado', docs_motivo: null, aprovado: true } : { docs_status: 'reprovado', docs_motivo: motivo, aprovado: false, online: false })
+        .eq('id', b.id);
+      if (error) return erro('Não consegui salvar. Tente de novo.', 502);
+      await avisarUsuarios(admin, [e0.user_id], {
+        titulo: ok ? 'Cadastro aprovado!' : 'Documentos recusados',
+        corpo: ok ? 'Você já pode ficar online e receber corridas.' : motivo,
+        url: '/entregador',
+      });
       return Response.json({ ok: true });
     }
     case 'config_entrega': {

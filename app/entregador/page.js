@@ -5,31 +5,15 @@ import AvisosPush from '../../components/AvisosPush';
 import Mapa from '../../components/Mapa';
 import BotaoAjuda from '../../components/BotaoAjuda';
 import Marca from '../../components/Marca';
+import Documentos from './Documentos';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
 import { brl } from '../../lib/format';
 import { FORMAS } from '../../lib/pedido';
+import { linkSuporte } from '../../lib/suporte';
 import { linkGoogleMaps, linkWaze, textoDistancia, textoTempo } from '../../lib/geo';
 import { supabase } from '../../lib/supabase';
-
-function Cabecalho({ onSair }) {
-  return (
-    <header className="topo-app" style={{ paddingBottom: 14 }}>
-      <div className="pagina">
-        <div className="topo-linha">
-          <Marca href="/entregador" />
-          {onSair && (
-            <button type="button" className="topo-pill" style={{ background: 'none', cursor: 'pointer', font: 'inherit' }} onClick={onSair}>
-              Sair
-            </button>
-          )}
-        </div>
-        <h1 className="titulo-topo">Área do entregador</h1>
-      </div>
-    </header>
-  );
-}
 
 function Cadastro({ aoConcluir }) {
   const [f, setF] = useState({ nome: '', telefone: '', veiculo: 'moto', codigo: '' });
@@ -78,7 +62,7 @@ function Cadastro({ aoConcluir }) {
         <input id="e-cod" className="input" maxLength={6} placeholder="Ex.: A1B2C3" value={f.codigo} onChange={(e) => setF((x) => ({ ...x, codigo: e.target.value.toUpperCase() }))} />
         <small>
           Se uma loja te convidou, digite o código dela: você faz só as entregas dessa loja e já entra liberado. Sem código, você entra na plataforma e
-          começa a receber corridas depois que a gente aprovar o seu cadastro.
+          começa a receber corridas depois de enviar CNH, documento da moto e selfie e a gente aprovar.
         </small>
       </div>
       {erro && (
@@ -204,7 +188,10 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
   );
 }
 
-function Painel({ dados, recarregar }) {
+function Painel({ dados, recarregar, aoSair }) {
+  const [tela, setTela] = useState('mapa');
+  const [menu, setMenu] = useState(false);
+  const [altMapa] = useState(() => Math.max(260, Math.round(window.innerHeight * 0.5)));
   const { entregador: ent, ativas, disponiveis, conta } = dados;
   const [chave, setChave] = useState(conta.chave_pix || '');
   const [ocupado, setOcupado] = useState(false);
@@ -267,7 +254,7 @@ function Painel({ dados, recarregar }) {
     });
 
   // Distância até a loja das corridas disponíveis: usa o GPS só para calcular aqui na tela.
-  const temCorridas = ent.online && disponiveis.length > 0;
+  const temCorridas = ent.online;
   useEffect(() => {
     if (!temCorridas || !('geolocation' in navigator)) return undefined;
     let vivo = true;
@@ -335,130 +322,194 @@ function Painel({ dados, recarregar }) {
   }, [levando, ent.id]);
 
   const semAprovacao = !ent.exclusivo && !ent.aprovado;
+  const docs = ent.docs_status;
+  const precisaDocs = !ent.exclusivo && docs !== 'aprovado';
+  const primeiro = ent.nome.split(' ')[0];
+  const irPara = (t) => { setTela(t); setMenu(false); };
+  const saldoTxt = conta.saldo < 0 ? `− ${brl(-conta.saldo)}` : brl(conta.saldo);
+
+  const pontosMapa = [];
+  if (minhaPos) pontosMapa.push({ id: 'voce', tipo: 'moto', lat: minhaPos.lat, lng: minhaPos.lng, rotulo: 'Você' });
+  if (ent.online) {
+    corridas.forEach((p) => {
+      const l = p.dl_lojas;
+      if (l && Number.isFinite(l.lat)) pontosMapa.push({ id: `l-${p.id}`, tipo: 'loja', lat: l.lat, lng: l.lng, rotulo: `${l.nome} · ${brl(p.taxa_entrega)}` });
+    });
+  }
+
+  const gaveta = menu && (
+    <>
+      <div className="ent-gaveta-fundo" onClick={() => setMenu(false)} />
+      <nav className="ent-gaveta" aria-label="Menu do entregador">
+        <div className="ent-quem">
+          <Marca href="/entregador" />
+          <div style={{ marginTop: 12, fontWeight: 700, fontSize: 18 }}>{ent.nome}</div>
+          <div className="muted" style={{ fontSize: 14 }}>{VEICULOS[ent.veiculo]} · {ent.exclusivo ? `Loja ${ent.loja_nome || ''}` : 'Plataforma'}</div>
+        </div>
+        <button type="button" onClick={() => irPara('mapa')}>🏍️ Início</button>
+        <button type="button" onClick={() => irPara('ganhos')}>💰 Ganhos <span className="muted">{saldoTxt}</span></button>
+        {!ent.exclusivo && (
+          <button type="button" onClick={() => irPara('documentos')}>
+            📄 Documentos {docs !== 'aprovado' && <span className="ent-etiqueta">{docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Corrigir' : 'Enviar'}</span>}
+          </button>
+        )}
+        <button type="button" onClick={() => irPara('perfil')}>👤 Perfil</button>
+        <a href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">💬 Suporte e ajuda</a>
+        <button type="button" onClick={() => irPara('config')}>⚙️ Configurações</button>
+        <button type="button" onClick={aoSair}>↪ Sair</button>
+      </nav>
+    </>
+  );
+
+  if (tela !== 'mapa') {
+    const titulos = { ganhos: 'Ganhos', documentos: 'Documentos', perfil: 'Perfil', config: 'Configurações' };
+    return (
+      <>
+        {gaveta}
+        <div className="ent-tela-topo">
+          <button type="button" className="ent-redondo" aria-label="Voltar" onClick={() => setTela('mapa')}>←</button>
+          <h1>{titulos[tela]}</h1>
+        </div>
+        <div className="ent-tela">
+          {tela === 'ganhos' && (
+            <>
+              <div className="ent-bloco">
+                <span className="muted">{conta.saldo < 0 ? 'Você deve à plataforma' : 'A receber da plataforma'}</span>
+                <strong style={{ fontSize: 34, color: conta.saldo < 0 ? '#ff8f86' : undefined }}>{saldoTxt}</strong>
+                <small>
+                  Pix pelo app: a taxa de entrega é repassada a você por Pix. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
+                </small>
+              </div>
+              <div className="ent-bloco">
+                <strong>Últimos lançamentos</strong>
+                {conta.extrato.length === 0 && <span className="muted">Nada por aqui ainda. Suas entregas aparecem nesta lista.</span>}
+                {conta.extrato.map((l) => (
+                  <div key={l.id} className="ent-linha">
+                    <span>{l.descricao || l.tipo}</span>
+                    <strong>{Number(l.valor) < 0 ? `− ${brl(-Number(l.valor))}` : `+ ${brl(l.valor)}`}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="ent-bloco">
+                <label htmlFor="chave-pix-e"><strong>Sua chave Pix para receber</strong></label>
+                <input id="chave-pix-e" className="input" maxLength={140} placeholder="CPF, e-mail, telefone ou chave aleatória" value={chave} onChange={(e) => setChave(e.target.value)} />
+                <button type="button" className="btn btn-primario" onClick={salvarChave} disabled={ocupado || chave.trim() === (conta.chave_pix || '')}>Salvar chave</button>
+                {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
+              </div>
+            </>
+          )}
+          {tela === 'documentos' && <Documentos veiculo={ent.veiculo} aoMudar={recarregar} />}
+          {tela === 'perfil' && (
+            <div className="ent-bloco">
+              <div className="ent-linha"><span className="muted">Nome</span><strong>{ent.nome}</strong></div>
+              <div className="ent-linha"><span className="muted">Veículo</span><strong>{VEICULOS[ent.veiculo]}</strong></div>
+              <div className="ent-linha"><span className="muted">Tipo</span><strong>{ent.exclusivo ? `Da loja ${ent.loja_nome || ''}` : 'Da plataforma'}</strong></div>
+              {!ent.exclusivo && <div className="ent-linha"><span className="muted">Documentos</span><strong>{docs === 'aprovado' ? 'Aprovados' : docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Recusados' : 'Não enviados'}</strong></div>}
+              <small>Para mudar nome, telefone ou veículo, fale com o suporte.</small>
+              <a className="btn" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">💬 Falar com o suporte</a>
+            </div>
+          )}
+          {tela === 'config' && (
+            <>
+              <AvisosPush
+                titulo="Avisos de corrida nova"
+                descricao="Receba um alerta no celular quando uma loja chamar um entregador, mesmo com o site fechado."
+                inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
+                desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
+              />
+              <div className="ent-bloco">
+                <strong>Privacidade</strong>
+                <small>Sua localização só é enviada ao cliente e à loja enquanto você está com um pedido na mão. Fora disso ela fica só no seu aparelho.</small>
+                <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a>
+              </div>
+            </>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
-    <>
-      <section className="cartao">
-        <div className="painel-topo-linha">
-          <div>
-            <h2 style={{ margin: 0 }}>Olá, {ent.nome.split(' ')[0]}</h2>
-            <span className="muted">
-              {VEICULOS[ent.veiculo]} · {ent.exclusivo ? `Entregador da loja ${ent.loja_nome || ''}` : 'Entregador da plataforma'}
-            </span>
-          </div>
-          <button type="button" className={ent.online ? 'btn btn-pequeno btn-primario' : 'btn btn-pequeno'} onClick={alternarOnline} disabled={ocupado || semAprovacao} aria-pressed={ent.online}>
-            {ent.online ? 'Online' : 'Offline'}
-          </button>
+    <div>
+      {gaveta}
+      <div className="ent-mapa">
+        <div className="ent-topo">
+          <button type="button" className="ent-redondo" aria-label="Abrir menu" onClick={() => setMenu(true)}>☰</button>
+          <button type="button" className={conta.saldo < 0 ? 'ent-saldo neg' : 'ent-saldo'} onClick={() => setTela('ganhos')}>{saldoTxt}</button>
+          <a className="ent-redondo" aria-label="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">?</a>
         </div>
-        {semAprovacao && (
-          <div className="aviso" role="status">
-            Seu cadastro está em análise. Assim que for aprovado, você começa a receber corridas.
-          </div>
-        )}
-        {levando && (
-          <div className="aviso" role="status">
-            Sua localização está sendo compartilhada com o cliente e com a loja. Mantenha esta tela aberta até entregar.
-          </div>
-        )}
-        {gpsErro && (
-          <div className="aviso aviso-erro" role="alert">
-            {gpsErro}
-          </div>
-        )}
-        {erro && (
-          <div className="aviso aviso-erro" role="alert">
-            {erro}
-          </div>
-        )}
-      </section>
+        <Mapa pontos={pontosMapa} altura={altMapa} rotuloMapa="Mapa com a sua posição e as lojas com corrida" />
+      </div>
 
-      <section className="cartao" aria-label="Sua conta corrente">
-        <h2>Sua conta</h2>
-        <div
-          className="entrega-info"
-          style={{ color: conta.saldo < 0 ? '#b3261e' : undefined }}
-        >
-          <span>
-            {conta.saldo < 0 ? 'Você deve à plataforma: ' : 'A receber da plataforma: '}
-            <strong>{conta.saldo < 0 ? `− ${brl(-conta.saldo)}` : brl(conta.saldo)}</strong>
-          </span>
-        </div>
-        <small className="muted">
-          Pix pelo app: a taxa de entrega é repassada a você por Pix. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
-        </small>
-        {conta.extrato.length > 0 && (
-          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4, fontSize: 14 }}>
-            {conta.extrato.map((l) => (
-              <li key={l.id}>
-                {l.descricao || l.tipo}: <strong>{Number(l.valor) < 0 ? `− ${brl(-Number(l.valor))}` : `+ ${brl(l.valor)}`}</strong>
-              </li>
-            ))}
-          </ul>
+      <div className="ent-folha">
+        {ativas.length === 0 && (
+          <>
+            <div className="ent-status">
+              {precisaDocs
+                ? docs === 'em_analise'
+                  ? 'Seus documentos estão em análise.'
+                  : docs === 'reprovado'
+                  ? 'Seus documentos foram recusados.'
+                  : `Olá, ${primeiro}! Envie seus documentos para começar.`
+                : ent.online
+                ? 'Você está online. Procurando corridas…'
+                : `Olá, ${primeiro}. Você está offline.`}
+            </div>
+            {precisaDocs && docs !== 'em_analise' && (
+              <button type="button" className="btn btn-primario ent-grande" onClick={() => setTela('documentos')}>
+                {docs === 'reprovado' ? 'Corrigir documentos' : 'Enviar documentos'}
+              </button>
+            )}
+            {!precisaDocs && (
+              <button type="button" className="btn btn-primario ent-grande" onClick={alternarOnline} disabled={ocupado} aria-pressed={ent.online}>
+                {ent.online ? 'Desconectar' : 'Conectar'}
+              </button>
+            )}
+          </>
         )}
-        <div className="campo">
-          <label htmlFor="chave-pix-e">Sua chave Pix para receber</label>
-          <div className="opcoes">
-            <input id="chave-pix-e" className="input" maxLength={140} placeholder="CPF, e-mail, telefone ou chave aleatória" value={chave} onChange={(e) => setChave(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
-            <button type="button" className="btn btn-pequeno" onClick={salvarChave} disabled={ocupado || chave.trim() === (conta.chave_pix || '')}>
-              Salvar
-            </button>
-          </div>
-        </div>
-      </section>
+        {levando && <div className="aviso" role="status">Sua localização está sendo compartilhada com o cliente e com a loja. Mantenha esta tela aberta até entregar.</div>}
+        {gpsErro && <div className="aviso aviso-erro" role="alert">{gpsErro}</div>}
+        {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
 
-      <AvisosPush
-        titulo="Avisos de corrida nova"
-        descricao="Receba um alerta no celular quando uma loja chamar um entregador, mesmo com o site fechado."
-        inscrever={(subscription) => api('/api/push/inscrever', { metodo: 'POST', corpo: { subscription } })}
-        desinscrever={(endpoint) => api('/api/push/inscrever', { metodo: 'DELETE', corpo: { endpoint } })}
-      />
+        {ativas.map((p) => (
+          <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
+        ))}
 
-      {ativas.map((p) => (
-        <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
-      ))}
-
-      {ent.online && !semAprovacao && (
-        <section className="cartao" aria-label="Corridas disponíveis">
-          <h2>Corridas disponíveis</h2>
-          {semGps && disponiveis.length > 0 && (
-            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-              Libere o GPS do navegador para ver a distância até a loja. Sua localização não é enviada: ela só é usada nesta tela.
-            </p>
-          )}
-          {disponiveis.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              Nenhuma corrida agora. Esta tela atualiza sozinha.
-            </p>
-          ) : (
-            corridas.map((p) => (
-              <div key={p.id} className="produto-linha">
-                <div>
-                  <strong>
-                    {p.dl_lojas?.nome} · pedido {p.numero}
-                  </strong>
-                  <div className="muted" style={{ fontSize: 14 }}>
+        {ent.online && !semAprovacao && (
+          <section aria-label="Corridas disponíveis" style={{ display: 'grid', gap: 10 }}>
+            <strong>Corridas disponíveis</strong>
+            {semGps && disponiveis.length > 0 && (
+              <small>Libere o GPS do navegador para ver a distância até a loja. Sua localização não é enviada: ela só é usada nesta tela.</small>
+            )}
+            {disponiveis.length === 0 ? (
+              <span className="muted">Nenhuma corrida agora. Esta tela atualiza sozinha.</span>
+            ) : (
+              corridas.map((p) => (
+                <div key={p.id} className="ent-bloco">
+                  <div className="ent-linha">
+                    <strong>{p.dl_lojas?.nome} · pedido {p.numero}</strong>
+                    <strong style={{ color: 'var(--amarelo)', fontSize: 18 }}>{brl(p.taxa_entrega)}</strong>
+                  </div>
+                  <small>
                     Retirar: {[p.dl_lojas?.endereco, p.dl_lojas?.bairro].filter(Boolean).join(', ')}
                     <br />
                     Entregar no bairro: {p.bairro || 'informado após aceitar'}
-                  </div>
-                  {p.distancia_m != null && (
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>
-                      🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá
-                    </div>
-                  )}
+                  </small>
+                  {p.distancia_m != null && <div style={{ fontSize: 14, fontWeight: 600 }}>🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá</div>}
+                  <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => aceitar(p.id)}>Aceitar corrida</button>
                 </div>
-                <strong>{brl(p.taxa_entrega)}</strong>
-                <div className="opcoes" style={{ gridColumn: '1 / -1' }}>
-                  <button type="button" className="btn btn-pequeno btn-primario" disabled={ocupado} onClick={() => aceitar(p.id)}>
-                    Aceitar corrida
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </section>
-      )}
-    </>
+              ))
+            )}
+          </section>
+        )}
+
+        {ativas.length > 0 && ent.online && (
+          <button type="button" className="btn" onClick={() => window.confirm('Ao se desconectar você deixa de receber novas corridas. As que já aceitou continuam.') && alternarOnline()} disabled={ocupado}>
+            Desconectar
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -489,34 +540,34 @@ export default function AreaEntregador() {
     return () => clearInterval(id);
   }, [auth.status, dados, carregar]);
 
+  const painel = auth.status === 'in' && dados;
   return (
-    <>
-      <Cabecalho onSair={auth.status === 'in' ? sair : null} />
-      <main className="pagina" style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 60 }}>
-        {auth.status === 'off' && (
-          <div className="aviso aviso-erro" role="alert">
-            O login ainda não foi configurado neste site.
-          </div>
-        )}
-        {auth.status === 'out' && (
-          <section className="cartao">
-            <h2>Entre para fazer entregas</h2>
-            <p className="muted" style={{ margin: 0 }}>
-              Use sua conta Google. Você escolhe quando ficar online e só compartilha a localização enquanto estiver com um pedido na mão.
-            </p>
-            <button type="button" className="btn btn-primario" onClick={() => entrarComGoogle('/entregador')}>
-              Entrar com Google
-            </button>
-          </section>
-        )}
-        {auth.status === 'in' && erro && !dados && (
-          <div className="aviso aviso-erro" role="alert">
-            {erro}
-          </div>
-        )}
-        {auth.status === 'in' && dados === null && <Cadastro aoConcluir={carregar} />}
-        {auth.status === 'in' && dados && <Painel dados={dados} recarregar={carregar} />}
-      </main>
-    </>
+    <div className="ent">
+      {painel ? (
+        <Painel dados={dados} recarregar={carregar} aoSair={sair} />
+      ) : (
+        <main className="ent-pagina">
+          <Marca href="/entregador" />
+          <h1 style={{ margin: 0, color: 'var(--e-texto)', fontSize: 26 }}>Área do entregador</h1>
+          {auth.status === 'off' && <div className="aviso aviso-erro" role="alert">O login ainda não foi configurado neste site.</div>}
+          {auth.status === 'out' && (
+            <section className="cartao">
+              <h2>Entre para fazer entregas</h2>
+              <p className="muted" style={{ margin: 0 }}>
+                Use sua conta Google. Você escolhe quando ficar online e só compartilha a localização enquanto estiver com um pedido na mão.
+              </p>
+              <button type="button" className="btn btn-primario" onClick={() => entrarComGoogle('/entregador')}>Entrar com Google</button>
+            </section>
+          )}
+          {auth.status === 'in' && erro && !dados && <div className="aviso aviso-erro" role="alert">{erro}</div>}
+          {auth.status === 'in' && dados === null && (
+            <>
+              <Cadastro aoConcluir={carregar} />
+              <button type="button" className="btn" onClick={sair}>Sair</button>
+            </>
+          )}
+        </main>
+      )}
+    </div>
   );
 }

@@ -1886,3 +1886,46 @@ body:has(.nav-inf) .rodape {
 @media (prefers-reduced-motion: reduce) {
   .alerta-chegada { animation: none; }
 }
+
+/* ===== Área do entregador: tema escuro (só vale dentro de .ent) ===== */
+.ent { --e-fundo: #120b1e; --e-folha: #1d1430; --e-borda: rgba(255, 255, 255, 0.12); --e-texto: #f5effc; --e-suave: #b9aad0; min-height: 100dvh; background: var(--e-fundo); color: var(--e-texto); }
+.ent a { color: var(--amarelo); }
+.ent .muted, .ent small { color: var(--e-suave); }
+.ent .cartao, .ent .ent-bloco { background: var(--e-folha); border: 1px solid var(--e-borda); color: var(--e-texto); border-radius: 16px; box-shadow: none; }
+.ent .ent-bloco { padding: 14px; display: grid; gap: 8px; }
+.ent .input, .ent select.input { background: #120b1e; color: var(--e-texto); border-color: var(--e-borda); }
+.ent label { color: var(--e-texto); }
+.ent .btn { background: transparent; color: var(--e-texto); border: 1px solid var(--e-borda); }
+.ent .btn-primario, .ent .btn-amarelo { background: var(--amarelo); color: #2a1050; border-color: var(--amarelo); font-weight: 700; }
+.ent .btn:disabled { opacity: 0.45; }
+.ent .aviso, .ent .entrega-info, .ent .ent-aviso { background: rgba(255, 196, 0, 0.12); color: var(--e-texto); border: 1px solid rgba(255, 196, 0, 0.35); border-radius: 12px; padding: 10px 12px; }
+.ent .aviso-erro, .ent .ent-aviso-erro { background: rgba(255, 90, 80, 0.14); border-color: rgba(255, 90, 80, 0.5); }
+.ent .ent-aviso-ok { background: rgba(60, 200, 140, 0.14); border-color: rgba(60, 200, 140, 0.5); }
+.ent .produto-linha { border-color: var(--e-borda); }
+.ent-linha { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.ent-ok { color: #5fe0a8; font-weight: 700; font-size: 14px; }
+.ent-pend { color: var(--amarelo); font-weight: 700; font-size: 14px; }
+
+.ent-topo { position: absolute; z-index: 500; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; pointer-events: none; }
+.ent-topo > * { pointer-events: auto; }
+.ent-redondo { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--e-folha); color: var(--e-texto); font-size: 22px; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); display: grid; place-items: center; text-decoration: none; }
+.ent-saldo { background: var(--e-folha); color: var(--e-texto); border: 0; border-radius: 999px; padding: 11px 18px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
+.ent-saldo.neg { color: #ff8f86; }
+.ent-mapa { position: relative; }
+.ent-mapa .mapa { border-radius: 0; }
+.ent-folha { position: relative; z-index: 400; margin-top: -26px; background: var(--e-folha); border-radius: 26px 26px 0 0; padding: 18px 16px 40px; display: grid; gap: 14px; min-height: 42dvh; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4); }
+.ent-folha::before { content: ''; justify-self: center; width: 44px; height: 5px; border-radius: 3px; background: var(--e-borda); margin-bottom: -4px; }
+.ent-folha .cartao { background: #120b1e; }
+.ent-grande { width: 100%; padding: 18px; font-size: 20px; border-radius: 16px; }
+.ent-status { text-align: center; font-weight: 600; }
+.ent-gaveta-fundo { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.6); }
+.ent-gaveta { position: fixed; z-index: 901; top: 0; bottom: 0; left: 0; width: min(310px, 86vw); background: var(--e-folha); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.ent-gaveta button, .ent-gaveta a { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--e-texto); font: inherit; font-size: 17px; padding: 14px 10px; border-radius: 12px; cursor: pointer; text-align: left; text-decoration: none; }
+.ent-gaveta button:hover, .ent-gaveta a:hover { background: rgba(255, 255, 255, 0.07); }
+.ent-gaveta .ent-quem { padding: 6px 10px 16px; border-bottom: 1px solid var(--e-borda); margin-bottom: 8px; }
+.ent-tela { padding: 14px 16px 60px; display: grid; gap: 14px; max-width: 640px; margin: 0 auto; }
+.ent-tela-topo { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--e-borda); position: sticky; top: 0; background: var(--e-fundo); z-index: 600; }
+.ent-tela-topo h1 { font-size: 20px; margin: 0; color: var(--e-texto); }
+.ent-etiqueta { background: var(--amarelo); color: #2a1050; border-radius: 999px; font-size: 12px; font-weight: 700; padding: 2px 8px; }
+.ent-pagina { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; display: grid; gap: 16px; }
+.ent .leaflet-top.leaflet-left { top: 70px; }

@@ -68,6 +68,7 @@ export async function GET(request) {
         exclusivo: Boolean(ent.loja_id),
         loja_nome: lojaNome,
         aprovado: ent.aprovado,
+        docs_status: ent.docs_status,
       },
       conta,
       ativas: ativas || [],
