@@ -568,3 +568,7 @@ on conflict (id) do update set public = false, file_size_limit = 3145728, allowe
 update public.dl_entregadores
    set aprovado = false, online = false
  where loja_id is null and aprovado = true and docs_status <> 'aprovado';
+
+
+-- ===== 15: endereço do entregador =====
+alter table public.dl_entregadores add column if not exists endereco text;

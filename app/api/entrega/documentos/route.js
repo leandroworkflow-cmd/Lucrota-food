@@ -17,7 +17,7 @@ export async function GET(request) {
       status: ent.docs_status,
       motivo: ent.docs_status === 'reprovado' ? ent.docs_motivo : null,
       obrigatorio: precisaDeDocumentos(ent),
-      dados: { cnh_nome: ent.cnh_nome, cnh_validade: ent.cnh_validade, cnh_categoria: ent.cnh_categoria, placa: ent.placa },
+      dados: { cnh_nome: ent.cnh_nome, cnh_validade: ent.cnh_validade, cnh_categoria: ent.cnh_categoria, placa: ent.placa, endereco: ent.endereco },
     },
     { headers: { 'Cache-Control': 'no-store' } }
   );

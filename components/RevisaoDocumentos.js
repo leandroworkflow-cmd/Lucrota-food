@@ -44,7 +44,7 @@ export default function RevisaoDocumentos({ id, nome, aoDecidir, aoFechar }) {
       {ent && (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            {VEICULO[ent.veiculo]} · {ent.telefone}
+            {VEICULO[ent.veiculo]} · {ent.telefone}{ent.endereco && <> · Endereço: {ent.endereco}</>}
             {ent.cnh_nome && <> · Nome na CNH: <b>{ent.cnh_nome}</b> · Validade {ent.cnh_validade?.split('-').reverse().join('/')} · Categoria {ent.cnh_categoria} · Placa <b>{ent.placa}</b></>}
           </p>
           {alertas.length > 0 ? (
