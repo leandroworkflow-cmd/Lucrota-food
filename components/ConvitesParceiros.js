@@ -25,22 +25,7 @@ function gravarFechado(id) {
 }
 
 function Motoboy() {
-  return (
-    <svg viewBox="0 0 160 120" role="img" aria-label="Entregador de moto com bag de entrega" className="convite-arte">
-      <ellipse cx="80" cy="108" rx="62" ry="5" fill="#000" opacity=".12" />
-      <circle cx="38" cy="92" r="15" fill="#2a1840" /><circle cx="38" cy="92" r="6" fill="#d9c7f5" />
-      <circle cx="124" cy="92" r="15" fill="#2a1840" /><circle cx="124" cy="92" r="6" fill="#d9c7f5" />
-      <path d="M38 92 L62 70 H100 L124 92" fill="none" stroke="#ffc400" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M52 66 H92 Q98 66 98 72 V74 H52 Z" fill="#b98ae8" />
-      <path d="M118 52 L126 70 M112 52 H124" stroke="#e9dcff" strokeWidth="5" strokeLinecap="round" />
-      <rect x="50" y="26" width="34" height="32" rx="6" fill="#ffc400" /><rect x="50" y="38" width="34" height="5" fill="#5a1a9a" opacity=".85" />
-      <path d="M86 58 L98 40 Q102 34 108 40 L112 52" fill="none" stroke="#c9a8ff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M84 64 L100 66" stroke="#e9dcff" strokeWidth="8" strokeLinecap="round" />
-      <circle cx="104" cy="28" r="10" fill="#f1c7a0" />
-      <path d="M93 28 A11 11 0 0 1 115 28 V31 H93 Z" fill="#fff" />
-      <rect x="106" y="27" width="10" height="5" rx="2" fill="#2a1840" />
-    </svg>
-  );
+  return <img src="/img/entregador-convite.png" alt="Entregador do Brokê de moto com bag de entrega" className="convite-arte convite-arte-foto" width="150" height="150" />;
 }
 
 function Lojinha() {

@@ -2017,6 +2017,7 @@ button.ent-chip { cursor: pointer; }
 .convite h2 { margin: 4px 0 0; font-size: 17px; line-height: 1.2; }
 .convite p { margin: 0; font-size: 13px; line-height: 1.35; opacity: 0.9; flex: 1; }
 .convite-arte { width: 100%; max-width: 150px; height: auto; }
+.convite-arte-foto { border-radius: 22%; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); display: block; }
 .convite-roxo { background: #5c0297; color: #fff; }
 .convite-claro { background: #fff; color: var(--tinta); }
 .convite-botao { margin-top: 6px; display: inline-block; padding: 10px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; }
