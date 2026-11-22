@@ -722,3 +722,8 @@ create trigger dl_entregadores_selfie_dia before update of online on public.dl_e
 
 -- ===== 21: pedido pronto =====
 alter table public.dl_pedidos add column if not exists pronto_em timestamptz;
+
+-- ===== 22: chamar automatico =====
+alter table public.dl_lojas add column if not exists chamar_automatico boolean not null default true;
+grant insert (chamar_automatico) on public.dl_lojas to authenticated;
+grant update (chamar_automatico) on public.dl_lojas to authenticated;

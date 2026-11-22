@@ -231,3 +231,10 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - Na loja, o pedido "Em preparo" ganha o botão **Pedido pronto**. Ao tocar, o cartão mostra "Pronto às HH:MM" e o entregador que aceitou recebe um aviso no celular; na tela dele aparece "Pedido pronto. Pode retirar na loja."
 - É um marcador (`dl_pedidos.pronto_em`), não um novo status: o fluxo aceito → preparo → saiu → entregue continua o mesmo.
 - **Rode o SQL 21 antes de publicar**: o painel do entregador passa a ler essa coluna.
+
+## Chamar o entregador sozinho (v29, SQL 22)
+
+- Quando a loja toca em **Iniciar preparo**, a corrida é chamada automaticamente (avisa no celular os entregadores online que podem pegá-la). O botão "Chamar entregador" continua, para quem desligar essa opção.
+- Cada loja liga ou desliga em **Perfil da loja > Entregadores > "Chamar o entregador sozinho ao iniciar o preparo"** (coluna `dl_lojas.chamar_automatico`, padrão ligado).
+- A chamada é atômica (só atualiza se o pedido ainda não foi chamado nem aceito), então não há aviso duplicado.
+- **Rode o SQL 22 antes de publicar**: a rota de status do pedido lê essa coluna.

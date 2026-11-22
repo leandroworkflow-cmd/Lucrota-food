@@ -1,5 +1,6 @@
 import { avisoDoCliente, transicaoDaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente } from '../../../../lib/avisos-servidor';
+import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
 import { erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 import { conferirCodigo } from '../../../../lib/codigo';
 import { formaOnline } from '../../../../lib/cartao';
@@ -21,7 +22,7 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,status,entregador_id,loja_id,forma_pagamento,pagamento_status,mp_payment_id,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome)')
+    .select('id,numero,status,entrega,entregador_id,loja_id,forma_pagamento,pagamento_status,mp_payment_id,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,chamar_automatico)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido || pedido.dl_lojas?.dono_id !== r.user.id) return erro('Pedido não encontrado.', 404);
@@ -65,6 +66,19 @@ export async function POST(request) {
     .eq('id', pedido.id)
     .eq('status', pedido.status);
   if (error) return erro('Não consegui mudar o status. Tente de novo.', 502);
+
+  // Iniciou o preparo: chama o entregador sozinho (se a loja deixou ligado e ainda não chamou).
+  if (body.status === 'preparo' && pedido.dl_lojas?.chamar_automatico !== false && !pedido.entrega && !pedido.entregador_id) {
+    const { data: chamou } = await admin
+      .from('dl_pedidos')
+      .update({ entrega: 'procurando', atualizado_em: agora })
+      .eq('id', pedido.id)
+      .is('entrega', null)
+      .is('entregador_id', null)
+      .eq('status', 'preparo')
+      .select('id');
+    if (chamou?.length) await avisarCorridaDisponivel(admin, pedido.id);
+  }
 
   if (body.status === 'entregue') await registrarLancamentos(admin, pedido.id);
 

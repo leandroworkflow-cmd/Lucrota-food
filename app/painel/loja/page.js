@@ -44,6 +44,7 @@ export default function MinhaLoja() {
   const travadoEmpresa = !nova && Boolean(loja.cnpj) && loja.ativa;
   const [aceito, setAceito] = useState(false);
   const [ponto, setPonto] = useState(loja && Number.isFinite(loja.lat) ? { lat: loja.lat, lng: loja.lng } : null);
+  const [chamarAuto, setChamarAuto] = useState(loja ? loja.chamar_automatico !== false : true);
   const [aceitaPlataforma, setAceitaPlataforma] = useState(loja ? loja.aceita_plataforma !== false : true);
   const [avisoGeo, setAvisoGeo] = useState('');
   const [buscandoGeo, setBuscandoGeo] = useState(false);
@@ -99,6 +100,7 @@ export default function MinhaLoja() {
       lat: ponto?.lat ?? null,
       lng: ponto?.lng ?? null,
       aceita_plataforma: aceitaPlataforma,
+      chamar_automatico: chamarAuto,
     };
 
     setSalvando(true);
@@ -320,6 +322,15 @@ export default function MinhaLoja() {
               Aceitar também entregadores da plataforma
               <small className="muted" style={{ display: 'block' }}>
                 Quando você chama um entregador, os seus próprios e os aprovados da plataforma podem aceitar. Desmarque para só os seus.
+              </small>
+            </span>
+          </label>
+          <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 10 }}>
+            <input type="checkbox" checked={chamarAuto} onChange={(e) => setChamarAuto(e.target.checked)} style={{ marginTop: 4 }} />
+            <span>
+              Chamar o entregador sozinho ao iniciar o preparo
+              <small className="muted" style={{ display: 'block' }}>
+                Assim que você toca em "Iniciar preparo", a corrida aparece para os entregadores. Desmarque para chamar só quando quiser, pelo botão "Chamar entregador".
               </small>
             </span>
           </label>
