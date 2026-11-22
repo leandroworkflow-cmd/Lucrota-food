@@ -2009,3 +2009,22 @@ button.ent-chip { cursor: pointer; }
 .ent-menu-txt { flex: 1; }
 .ent-menu-seta { color: var(--e-suave); }
 .ent-ponto-fixo { width: 10px; height: 10px; border-radius: 50%; background: var(--amarelo); }
+
+/* ===== Convites da tela inicial: Seja entregador / Seja parceiro lojista ===== */
+.convites-fundo { position: fixed; inset: 0; z-index: 1200; background: rgba(21, 8, 38, 0.6); display: grid; place-items: center; padding: 16px; animation: convites-entra 0.25s ease-out; }
+.convites-grade { display: flex; gap: 12px; width: min(100%, 560px); align-items: stretch; justify-content: center; }
+.convite { position: relative; flex: 1 1 0; min-width: 0; border-radius: 20px; padding: 22px 12px 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+.convite h2 { margin: 4px 0 0; font-size: 17px; line-height: 1.2; }
+.convite p { margin: 0; font-size: 13px; line-height: 1.35; opacity: 0.9; flex: 1; }
+.convite-arte { width: 100%; max-width: 150px; height: auto; }
+.convite-roxo { background: #5c0297; color: #fff; }
+.convite-claro { background: #fff; color: var(--tinta); }
+.convite-botao { margin-top: 6px; display: inline-block; padding: 10px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; }
+.convite-roxo .convite-botao { background: var(--amarelo); color: #2a1840; }
+.convite-claro .convite-botao { background: #5c0297; color: #fff; }
+.convite-x { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer; font-size: 20px; line-height: 26px; padding: 0; background: rgba(0, 0, 0, 0.12); color: inherit; }
+.convite-roxo .convite-x { background: rgba(255, 255, 255, 0.2); }
+.convite-x:focus-visible, .convite-botao:focus-visible { outline: 2px solid var(--amarelo); outline-offset: 2px; }
+@keyframes convites-entra { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .convites-fundo { animation: none; } }
+@media (max-width: 380px) { .convite h2 { font-size: 15px; } .convite p { font-size: 12px; } }

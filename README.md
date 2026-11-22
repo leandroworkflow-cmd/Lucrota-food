@@ -245,3 +245,7 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - **Excluir minha conta** (SQL 23): botão em Minha conta, no painel da loja e nas Configurações do entregador. Conta só de cliente é apagada na hora; lojista e entregador geram um pedido (tabela `dl_exclusoes`) e o admin recebe aviso. Para concluir: confira saldo e pedidos em andamento, apague o usuário em Supabase > Authentication > Users e marque `update dl_exclusoes set status='concluida' where user_id='...'`.
 - **Entrar com Apple**: botão pronto, desligado até `NEXT_PUBLIC_APPLE_LOGIN=1` e o provedor Apple configurado no Supabase.
 - Pasta `mobile/` (Capacitor): configuração da casca iOS, ícone/splash e `GUIA-APP-STORE.md` com os passos e os riscos de recusa. O app **ainda não está pronto para enviar**: faltam conta Apple, Mac, Entrar com Apple configurado e push nativo.
+
+## Convites na tela inicial (v32)
+
+- Na tela inicial aparecem dois cartões lado a lado, "Seja entregador" (leva a `/entregador`) e "Seja um parceiro lojista" (leva a `/lojistas`), com ilustração própria e um X em cada um. Clicar fora ou apertar Esc fecha os dois. Cada convite fechado só volta depois de 7 dias (guardado no navegador). Código: `components/ConvitesParceiros.js`.
