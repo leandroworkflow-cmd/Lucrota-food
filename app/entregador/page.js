@@ -6,6 +6,7 @@ import Mapa from '../../components/Mapa';
 import BotaoAjuda from '../../components/BotaoAjuda';
 import Marca from '../../components/Marca';
 import Documentos from './Documentos';
+import SelfieDia from './SelfieDia';
 import { Icone } from '../../components/Icones';
 import SaqueSaldo from '../../components/SaqueSaldo';
 import { api } from '../../lib/api-cliente';
@@ -226,6 +227,7 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
 function Painel({ dados, recarregar, aoSair }) {
   const [tela, setTela] = useState('mapa');
   const [menu, setMenu] = useState(false);
+  const [selfie, setSelfie] = useState(false);
   const [altMapa] = useState(() => Math.round(window.innerHeight));
   const [aberto, setAberto] = useState(false);
   const [tratadas, setTratadas] = useState(() => new Set());
@@ -290,7 +292,10 @@ function Painel({ dados, recarregar, aoSair }) {
   const alternarOnline = () =>
     executar(async () => {
       const { error } = await supabase.from('dl_entregadores').update({ online: !ent.online }).eq('id', ent.id);
-      if (error) throw new Error('Não consegui mudar seu status.');
+      if (error) {
+        if (String(error.message).includes('selfie_do_dia')) { setSelfie(true); throw new Error('Tire a selfie do dia para ficar online.'); }
+        throw new Error('Não consegui mudar seu status.');
+      }
     });
 
   // Distância até a loja das corridas disponíveis: usa o GPS só para calcular aqui na tela.
@@ -425,8 +430,15 @@ function Painel({ dados, recarregar, aoSair }) {
 
   const ind = dados.indicadores || {};
   const pendencias = dados.pendencias || [];
-  const ligar = () => {
+  // Entregador da plataforma tira uma selfie ao vivo uma vez por dia antes de ficar online.
+  const ligar = async () => {
     liberarSom();
+    if (!ent.exclusivo) {
+      try {
+        const r = await api('/api/entrega/selfie-dia');
+        if (r.necessaria && !r.feita) return setSelfie(true);
+      } catch {}
+    }
     alternarOnline();
   };
 
@@ -610,6 +622,7 @@ function Painel({ dados, recarregar, aoSair }) {
   return (
     <div className="ent-cheia">
       {gaveta}
+      {selfie && <SelfieDia aoCancelar={() => setSelfie(false)} aoConcluir={async () => { setSelfie(false); await alternarOnline(); }} />}
       {ofertaUI}
       <Mapa pontos={pontosMapa} altura={altMapa} rotuloMapa="Mapa com a sua posição e as lojas com corrida" />
       <div className="ent-topo">

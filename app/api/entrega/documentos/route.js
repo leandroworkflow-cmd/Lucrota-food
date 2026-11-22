@@ -1,5 +1,5 @@
 import { erro, entregadorDaRequisicao } from '../../../../lib/entrega-servidor';
-import { TIPOS_DOC, MAX_BYTES_DOC, ehJpeg, precisaDeDocumentos, tiposExigidos } from '../../../../lib/documentos';
+import { TIPOS_DOC, MAX_BYTES_DOC, ehJpeg, ehPdf, precisaDeDocumentos, tiposExigidos } from '../../../../lib/documentos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,11 +40,15 @@ export async function POST(request) {
   if (!arquivo || typeof arquivo.arrayBuffer !== 'function') return erro('Envie a foto.', 400);
   if (arquivo.size > MAX_BYTES_DOC) return erro('A foto ficou grande demais. Tire outra.', 413);
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
-  if (!ehJpeg(bytes)) return erro('Envie uma foto (JPEG).', 400);
+  const pdf = tipo === 'cnh' && ehPdf(bytes);
+  if (!pdf && !ehJpeg(bytes)) return erro(tipo === 'cnh' ? 'Envie uma foto ou o PDF da CNH.' : 'Envie uma foto (JPEG).', 400);
 
-  const caminho = `${ent.id}/${tipo}.jpg`;
-  const { error: e1 } = await admin.storage.from('dl-documentos').upload(caminho, bytes, { contentType: 'image/jpeg', upsert: true });
-  if (e1) return erro('Não consegui guardar a foto. Tente de novo.', 502);
+  const ext = pdf ? 'pdf' : 'jpg';
+  const caminho = `${ent.id}/${tipo}.${ext}`;
+  const { error: e1 } = await admin.storage.from('dl-documentos').upload(caminho, bytes, { contentType: pdf ? 'application/pdf' : 'image/jpeg', upsert: true });
+  if (e1) return erro('Não consegui guardar o arquivo. Tente de novo.', 502);
+  // Se trocou de foto para PDF (ou o contrário), apaga o arquivo antigo.
+  if (tipo === 'cnh') await admin.storage.from('dl-documentos').remove([`${ent.id}/cnh.${pdf ? 'jpg' : 'pdf'}`]);
   const { error: e2 } = await admin.from('dl_documentos').upsert({ entregador_id: ent.id, tipo, caminho, criado_em: new Date().toISOString() }, { onConflict: 'entregador_id,tipo' });
   if (e2) return erro('Não consegui guardar a foto. Tente de novo.', 502);
   return Response.json({ ok: true });

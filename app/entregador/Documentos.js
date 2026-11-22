@@ -8,13 +8,13 @@ import { Icone } from '../../components/Icones';
 
 const CATEGORIAS = ['A', 'AB', 'B', 'AC', 'AD', 'AE', 'C', 'D', 'E'];
 const AJUDA = {
-  cnh: 'Foto da frente da CNH aberta, sem reflexo, com todo o texto legível. Pode ser a CNH Digital impressa ou a tela do app, desde que apareça inteira.',
+  cnh: 'Envie uma foto da frente da CNH aberta, sem reflexo, ou o PDF da CNH Digital (até 3 MB). Todo o texto precisa estar legível.',
   crlv: 'Foto do documento do veículo (CRLV) com a placa e o nome do proprietário legíveis.',
   selfie: 'Tire agora uma selfie de frente, com o rosto inteiro, sem óculos escuros nem boné e com boa luz. Ela não pode ser uma foto da galeria.',
 };
 
 // Selfie ao vivo: abre a câmera frontal e só aceita foto tirada na hora (nada de galeria).
-function SelfieAoVivo({ aoCapturar, aoCancelar }) {
+export function SelfieAoVivo({ aoCapturar, aoCancelar }) {
   const video = useRef(null);
   const stream = useRef(null);
   const [erro, setErro] = useState('');
@@ -73,10 +73,12 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
     setOcupado(true);
     setMsg('');
     try {
-      const blob = blobOuArquivo.type === 'image/jpeg' && tipo === 'selfie' ? blobOuArquivo : await prepararDocumento(blobOuArquivo);
+      const ePdf = tipo === 'cnh' && blobOuArquivo.type === 'application/pdf';
+      if (ePdf && blobOuArquivo.size > 3 * 1024 * 1024) throw new Error('O PDF passou de 3 MB. Envie uma foto da CNH ou um PDF menor.');
+      const blob = ePdf || (blobOuArquivo.type === 'image/jpeg' && tipo === 'selfie') ? blobOuArquivo : await prepararDocumento(blobOuArquivo);
       const f = new FormData();
       f.append('tipo', tipo);
-      f.append('arquivo', blob, `${tipo}.jpg`);
+      f.append('arquivo', blob, `${tipo}.${ePdf ? 'pdf' : 'jpg'}`);
       await apiEnviar('/api/entrega/documentos', f);
       setCamera(false);
       await aoEnviar();
@@ -104,8 +106,8 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
               </button>
             ) : (
               <label className="btn btn-pequeno" style={{ cursor: 'pointer' }}>
-                {ocupado ? 'Enviando…' : enviado ? 'Trocar foto' : 'Tirar ou escolher foto'}
-                <input type="file" accept="image/*" capture="environment" hidden disabled={ocupado} onChange={(e) => e.target.files?.[0] && enviar(e.target.files[0])} />
+                {ocupado ? 'Enviando…' : enviado ? (tipo === 'cnh' ? 'Trocar arquivo' : 'Trocar foto') : tipo === 'cnh' ? 'Foto ou PDF da CNH' : 'Tirar ou escolher foto'}
+                <input type="file" accept={tipo === 'cnh' ? 'image/*,application/pdf' : 'image/*'} {...(tipo === 'cnh' ? {} : { capture: 'environment' })} hidden disabled={ocupado} onChange={(e) => e.target.files?.[0] && enviar(e.target.files[0])} />
               </label>
             )}
           </div>

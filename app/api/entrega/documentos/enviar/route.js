@@ -29,7 +29,7 @@ export async function POST(request) {
   const ia = process.env.IA_PROVEDOR && process.env.IA_PROVEDOR !== 'nenhum';
   if (ia) {
     for (const d of docs || []) {
-      if (d.tipo === 'selfie') continue;
+      if (d.tipo === 'selfie' || d.caminho.endsWith('.pdf')) continue; // selfie nunca vai para IA; PDF só na conferência humana
       const { data } = await admin.storage.from('dl-documentos').download(d.caminho);
       if (data) arquivos[d.tipo] = new Uint8Array(await data.arrayBuffer());
     }

@@ -58,14 +58,35 @@ export default function RevisaoDocumentos({ id, nome, aoDecidir, aoFechar }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
             {['selfie', 'cnh', 'crlv'].filter((t) => d.links[t]).map((t) => (
               <figure key={t} style={{ margin: 0 }}>
-                <a href={d.links[t]} target="_blank" rel="noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={d.links[t]} alt={ROTULO_DOC[t]} style={{ width: '100%', borderRadius: 10, border: '1px solid #ddd' }} />
-                </a>
+                {d.pdfs?.[t] ? (
+                  <a className="btn" href={d.links[t]} target="_blank" rel="noreferrer">Abrir o PDF da {ROTULO_DOC[t]}</a>
+                ) : (
+                  <a href={d.links[t]} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.links[t]} alt={ROTULO_DOC[t]} style={{ width: '100%', borderRadius: 10, border: '1px solid #ddd' }} />
+                  </a>
+                )}
                 <figcaption className="muted" style={{ fontSize: 13 }}>{ROTULO_DOC[t]}</figcaption>
               </figure>
             ))}
           </div>
+          {d.selfiesDia?.length > 0 && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              <b>Selfies diárias (últimos dias)</b>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
+                {d.selfiesDia.map((x) => (
+                  <figure key={x.dia} style={{ margin: 0, flex: 'none', width: 120 }}>
+                    <a href={x.url} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={x.url} alt={`Selfie de ${x.dia}`} style={{ width: '100%', borderRadius: 10, border: '1px solid #ddd' }} />
+                    </a>
+                    <figcaption className="muted" style={{ fontSize: 12 }}>{x.dia.split('-').reverse().join('/')} {new Date(x.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}</figcaption>
+                  </figure>
+                ))}
+              </div>
+              <small className="muted">Compare com a selfie do cadastro e a foto da CNH. Se o rosto for outro, suspenda a conta na lista de entregadores.</small>
+            </div>
+          )}
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
             Confira: o rosto da selfie é o mesmo da foto da CNH; o nome e a validade batem com o digitado; a placa do documento da moto é a digitada. Os links das fotos expiram em 5 minutos.
           </p>

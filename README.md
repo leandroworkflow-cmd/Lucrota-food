@@ -212,3 +212,10 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - Ícones de linha próprios (`components/Icones.js`) no lugar dos emojis; menu em tela cheia com linhas, setas e indicadores de aceitação/finalização; barra inferior com botão Conectar e dois botões redondos.
 - Instalável: abra `/entregador` no celular e use "Adicionar à tela inicial". O manifesto próprio fica em `app/entregador/manifest.webmanifest/route.js`.
 - Não há SQL novo.
+
+## CNH em PDF e selfie diária (v26)
+
+- **CNH em PDF:** além da foto, o entregador pode enviar o PDF da CNH Digital (até 3 MB). O servidor confere a assinatura do arquivo. No admin, o PDF abre em nova aba. A conferência por IA (se ligada) lê só fotos; o PDF fica para a conferência humana.
+- **Selfie ao vivo uma vez por dia (SQL 19):** entregador da plataforma (sem código de loja) precisa tirar uma selfie com a câmera ao tocar em Conectar pela primeira vez no dia (dia de Brasília). A trava é no banco: o gatilho `dl_exigir_selfie_dia` recusa `online = true` sem a selfie de hoje, então não dá para contornar pelo celular. Entregadores de loja ficam fora.
+- As selfies ficam no bucket privado `dl-documentos` (`<entregador>/dia/AAAA-MM-DD.jpg`), são apagadas depois de 30 dias e aparecem no admin (revisão de documentos) com data e hora, para comparar com a selfie do cadastro e a foto da CNH.
+- Não há comparação automática de rostos. Para isso, o caminho é contratar um serviço de verificação facial com prova de vida e atualizar a Política de Privacidade.

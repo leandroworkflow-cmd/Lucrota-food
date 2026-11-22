@@ -55,6 +55,11 @@ export default function Privacidade() {
           modelos. Você pode retirar o consentimento e pedir a exclusão das fotos a qualquer momento; sem elas, não é
           possível atuar como entregador da plataforma.
         </p>
+        <p>
+          Além disso, o entregador da plataforma tira uma selfie ao vivo uma vez por dia, antes de ficar online, para
+          evitar que outra pessoa use a conta. Essas selfies diárias ficam em área privada, são vistas só pela nossa
+          equipe e apagadas depois de 30 dias.
+        </p>
 
         <h2>Para que usamos</h2>
         <p>
