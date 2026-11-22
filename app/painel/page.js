@@ -46,7 +46,7 @@ function alarmeChegada() {
 
 const mesmoDia = (iso) => new Date(iso).toDateString() === new Date().toDateString();
 
-function CartaoPedido({ p, loja, onStatus, onChamar, ocupado }) {
+function CartaoPedido({ p, loja, onStatus, onChamar, onPronto, ocupado }) {
   const [codigo, setCodigo] = useState('');
   // Com entregador aceito, ele conduz as etapas "saiu" e "entregue" pelo app dele.
   const entregadorCuida = Boolean(p.entregador_id) && ['preparo', 'saiu'].includes(p.status);
@@ -64,7 +64,7 @@ function CartaoPedido({ p, loja, onStatus, onChamar, ocupado }) {
       <div className="pedido-topo">
         <strong>#{p.numero}</strong>
         <span className="pedido-meta">
-          {hora(p.criado_em)} · {STATUS[p.status]}
+          {hora(p.criado_em)} · {STATUS[p.status]}{p.pronto_em && p.status === 'preparo' ? ` · Pronto às ${hora(p.pronto_em)}` : ''}
         </span>
       </div>
       <div>
@@ -148,6 +148,11 @@ function CartaoPedido({ p, loja, onStatus, onChamar, ocupado }) {
               </button>
             )
           )}
+          {p.status === 'preparo' && !p.pronto_em && (
+            <button type="button" className="btn btn-primario btn-pequeno" disabled={ocupado} onClick={() => onPronto(p)}>
+              Pedido pronto
+            </button>
+          )}
           {cancelavel && (
             <button
               type="button"
@@ -189,7 +194,7 @@ export default function Pedidos() {
     const desde = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
     const { data, error } = await supabase
       .from('dl_pedidos')
-      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,entregador_nome,entregador_veiculo,cancelado_por,taxa_cancelamento')
+      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,pronto_em,entregador_nome,entregador_veiculo,cancelado_por,taxa_cancelamento')
       .eq('loja_id', loja.id)
       .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado,reembolsado_parcial)')
       .gte('criado_em', desde)
@@ -241,6 +246,18 @@ export default function Pedidos() {
     setOcupado(true);
     try {
       await api('/api/loja/status', { metodo: 'POST', corpo: { pedido_id: p.id, status, ...(codigo ? { codigo } : {}) } });
+      setErro('');
+    } catch (e) {
+      setErro(e.message);
+    }
+    setOcupado(false);
+    carregar();
+  }
+
+  async function marcarPronto(p) {
+    setOcupado(true);
+    try {
+      await api('/api/loja/pronto', { metodo: 'POST', corpo: { pedido_id: p.id } });
       setErro('');
     } catch (e) {
       setErro(e.message);
@@ -317,7 +334,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {novos.map((p) => (
-                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} onPronto={marcarPronto} ocupado={ocupado} />
               ))}
             </ul>
             {novos.length === 0 && <p className="muted">Nenhum pedido novo. Esta tela atualiza sozinha.</p>}
@@ -328,7 +345,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {andamento.map((p) => (
-                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} onPronto={marcarPronto} ocupado={ocupado} />
               ))}
             </ul>
             {andamento.length === 0 && <p className="muted">Nada em andamento.</p>}
@@ -339,7 +356,7 @@ export default function Pedidos() {
             </h2>
             <ul>
               {finalizados.map((p) => (
-                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} ocupado={ocupado} />
+                <CartaoPedido key={p.id} p={p} loja={loja} onStatus={mudarStatus} onChamar={chamarEntregador} onPronto={marcarPronto} ocupado={ocupado} />
               ))}
             </ul>
             {finalizados.length === 0 && <p className="muted">Ainda não há pedidos finalizados hoje.</p>}

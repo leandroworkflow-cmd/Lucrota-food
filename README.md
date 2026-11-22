@@ -219,3 +219,15 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - **Selfie ao vivo uma vez por dia (SQL 19):** entregador da plataforma (sem código de loja) precisa tirar uma selfie com a câmera ao tocar em Conectar pela primeira vez no dia (dia de Brasília). A trava é no banco: o gatilho `dl_exigir_selfie_dia` recusa `online = true` sem a selfie de hoje, então não dá para contornar pelo celular. Entregadores de loja ficam fora.
 - As selfies ficam no bucket privado `dl-documentos` (`<entregador>/dia/AAAA-MM-DD.jpg`), são apagadas depois de 30 dias e aparecem no admin (revisão de documentos) com data e hora, para comparar com a selfie do cadastro e a foto da CNH.
 - Não há comparação automática de rostos. Para isso, o caminho é contratar um serviço de verificação facial com prova de vida e atualizar a Política de Privacidade.
+
+## Contas de teste (v27, SQL 20)
+
+- `supabase/20-contas-teste.sql` cria um entregador e um lojista de teste, já aprovados, sem CNH, selfie nem CNPJ. Troque os dois e-mails no arquivo (cada um precisa ter entrado uma vez com o Google) e rode no SQL Editor. Pode ser repetido.
+- Entregador de teste: documentos aprovados e sem selfie diária (coluna `conta_teste`). Lojista de teste: loja "Loja Teste" ativa e aberta em `/loja-teste`.
+- As colunas `conta_teste` não podem ser alteradas pelo navegador. Antes de lançar, apague as contas de teste (comandos no fim do SQL). O SQL 20 não entra no `00-tudo-de-uma-vez.sql` de propósito, porque depende dos seus e-mails.
+
+## Pedido pronto (v28, SQL 21)
+
+- Na loja, o pedido "Em preparo" ganha o botão **Pedido pronto**. Ao tocar, o cartão mostra "Pronto às HH:MM" e o entregador que aceitou recebe um aviso no celular; na tela dele aparece "Pedido pronto. Pode retirar na loja."
+- É um marcador (`dl_pedidos.pronto_em`), não um novo status: o fluxo aceito → preparo → saiu → entregue continua o mesmo.
+- **Rode o SQL 21 antes de publicar**: o painel do entregador passa a ler essa coluna.

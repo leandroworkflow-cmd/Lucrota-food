@@ -150,6 +150,9 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
         </a>
       </div>
 
+      {!saiu && p.pronto_em && (
+        <div className="aviso" role="status"><Icone nome="ok" tam={18} style={{ verticalAlign: '-3px' }} /> <strong>Pedido pronto.</strong> Pode retirar na loja.</div>
+      )}
       {!saiu && (
         <div className={p.chegou_loja_em ? 'aviso' : 'entrega-info'} role="status">
           {p.chegou_loja_em ? 'A loja foi avisada que você chegou. Pegue o pedido e toque em "Peguei o pedido".' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
