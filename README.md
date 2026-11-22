@@ -249,3 +249,5 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 ## Convites na tela inicial (v32)
 
 - Na tela inicial aparecem dois cartões lado a lado, "Seja entregador" (leva a `/entregador`) e "Seja um parceiro lojista" (leva a `/lojistas`), com ilustração própria e um X em cada um. Clicar fora ou apertar Esc fecha os dois. Cada convite fechado só volta depois de 7 dias (guardado no navegador). Código: `components/ConvitesParceiros.js`.
+
+> Nota: o ícone do navegador agora fica em `public/favicon.ico` (arquivo estático). Um `app/favicon.ico` gerado por script fez o build da Vercel falhar com "unable to decode image data"; o `app/icon.png` continua valendo para os navegadores modernos.
