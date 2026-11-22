@@ -1,5 +1,7 @@
 'use client';
 
+import ExcluirConta from './ExcluirConta';
+import BotaoApple from './BotaoApple';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -100,6 +102,7 @@ export default function PainelShell({ children }) {
             <button type="button" className="btn btn-primario" onClick={() => entrarComGoogle()}>
               Entrar com Google
             </button>
+            <BotaoApple />
           </div>
           <p className="muted" style={{ margin: 0, fontSize: 14 }}>
             Ao entrar, você aceita os <Link href="/termos">termos de uso</Link> e a{' '}
@@ -143,6 +146,7 @@ export default function PainelShell({ children }) {
           // sem loja, só a tela de cadastro aparece (as outras precisam de uma loja)
           (loja || pathname === '/painel/loja') && children
         )}
+        {!carregando && <ExcluirConta />}
       </main>
     </Ctx.Provider>
   );

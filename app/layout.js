@@ -16,7 +16,7 @@ export const metadata = {
   appleWebApp: { capable: true, title: SITE.nome, statusBarStyle: 'default' },
 };
 
-export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#5a1a9a' };
+export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#5c0297' };
 
 export default function RootLayout({ children }) {
   return (

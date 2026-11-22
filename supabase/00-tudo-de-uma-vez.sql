@@ -727,3 +727,14 @@ alter table public.dl_pedidos add column if not exists pronto_em timestamptz;
 alter table public.dl_lojas add column if not exists chamar_automatico boolean not null default true;
 grant insert (chamar_automatico) on public.dl_lojas to authenticated;
 grant update (chamar_automatico) on public.dl_lojas to authenticated;
+
+-- ===== 23: exclusao de conta =====
+create table if not exists public.dl_exclusoes (
+  user_id uuid primary key,
+  email text,
+  papel text not null,
+  status text not null default 'pendente' check (status in ('pendente', 'concluida')),
+  criado_em timestamptz not null default now()
+);
+alter table public.dl_exclusoes enable row level security;
+revoke all on public.dl_exclusoes from anon, authenticated;

@@ -1,0 +1,10 @@
+Cole estes trechos no ios/App/App/Info.plist (dentro de <dict>), depois de rodar "npx cap add ios":
+
+<key>NSCameraUsageDescription</key>
+<string>O Brokê usa a câmera para a selfie do entregador e as fotos dos documentos.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>O Brokê precisa acessar suas fotos para você enviar a foto de produtos e do documento.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>O Brokê usa a sua localização para mostrar corridas perto de você e acompanhar a entrega enquanto você está com um pedido.</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>

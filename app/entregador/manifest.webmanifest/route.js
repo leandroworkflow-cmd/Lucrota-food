@@ -13,7 +13,7 @@ export function GET() {
       display: 'standalone',
       orientation: 'portrait',
       lang: 'pt-BR',
-      background_color: '#0e0c13',
+      background_color: '#5c0297',
       theme_color: '#0e0c13',
       icons: [
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

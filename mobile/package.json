@@ -1,0 +1,26 @@
+{
+  "name": "broke-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Casca nativa (Capacitor) do Brokê para a App Store. Veja GUIA-APP-STORE.md.",
+  "scripts": {
+    "ios:add": "npx cap add ios",
+    "assets": "npx @capacitor/assets generate --ios",
+    "sync": "npx cap sync ios",
+    "abrir": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/camera": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/push-notifications": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

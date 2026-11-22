@@ -238,3 +238,10 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - Cada loja liga ou desliga em **Perfil da loja > Entregadores > "Chamar o entregador sozinho ao iniciar o preparo"** (coluna `dl_lojas.chamar_automatico`, padrão ligado).
 - A chamada é atômica (só atualiza se o pedido ainda não foi chamado nem aceito), então não há aviso duplicado.
 - **Rode o SQL 22 antes de publicar**: a rota de status do pedido lê essa coluna.
+
+## Nova logo, ícones e preparo para a App Store (v30, SQL 23)
+
+- Nova logo (B com riscos amarelos): `public/img/logo-broke.png` (transparente, usada nos cabeçalhos), ícones do app (`public/icons`, `app/icon.png`, `app/apple-icon.png`, `app/favicon.ico`) e cores do app (roxo #5c0297) no manifesto, na tela de abertura e na barra do navegador.
+- **Excluir minha conta** (SQL 23): botão em Minha conta, no painel da loja e nas Configurações do entregador. Conta só de cliente é apagada na hora; lojista e entregador geram um pedido (tabela `dl_exclusoes`) e o admin recebe aviso. Para concluir: confira saldo e pedidos em andamento, apague o usuário em Supabase > Authentication > Users e marque `update dl_exclusoes set status='concluida' where user_id='...'`.
+- **Entrar com Apple**: botão pronto, desligado até `NEXT_PUBLIC_APPLE_LOGIN=1` e o provedor Apple configurado no Supabase.
+- Pasta `mobile/` (Capacitor): configuração da casca iOS, ícone/splash e `GUIA-APP-STORE.md` com os passos e os riscos de recusa. O app **ainda não está pronto para enviar**: faltam conta Apple, Mac, Entrar com Apple configurado e push nativo.

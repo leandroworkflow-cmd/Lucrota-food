@@ -7,6 +7,8 @@ import { entrarComGoogle, sair, useSession } from '../lib/auth';
 import { mascaraCpf, validarCartaoDigitado } from '../lib/cartao';
 import { tokenizarCartao } from '../lib/mp-cliente';
 import CartaoForm from './CartaoForm';
+import ExcluirConta from './ExcluirConta';
+import BotaoApple from './BotaoApple';
 
 const VAZIO = { tipo: 'credit_card', numero: '', nome: '', validade: '', cvv: '', cpf: '' };
 
@@ -94,6 +96,7 @@ export default function ContaCliente({ chaveMP }) {
         <button type="button" className="btn btn-primario" onClick={() => entrarComGoogle('/conta')}>
           Entrar com Google
         </button>
+        <BotaoApple destino="/conta" />
       </section>
     );
   }
@@ -201,6 +204,7 @@ export default function ContaCliente({ chaveMP }) {
               Sair da conta
             </button>
           </div>
+          <ExcluirConta />
         </>
       )}
     </>

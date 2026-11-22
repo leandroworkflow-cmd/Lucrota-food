@@ -9,6 +9,8 @@ import Documentos from './Documentos';
 import SelfieDia from './SelfieDia';
 import { Icone } from '../../components/Icones';
 import SaqueSaldo from '../../components/SaqueSaldo';
+import ExcluirConta from '../../components/ExcluirConta';
+import BotaoApple from '../../components/BotaoApple';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
@@ -602,6 +604,7 @@ function Painel({ dados, recarregar, aoSair }) {
                 <small>Sua localização só é enviada ao cliente e à loja enquanto você está com um pedido na mão. Fora disso ela fica só no seu aparelho.</small>
                 <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a>
               </div>
+              <ExcluirConta />
             </>
           )}
         </div>
@@ -792,6 +795,7 @@ export default function AreaEntregador() {
                 Use sua conta Google. Você escolhe quando ficar online e só compartilha a localização enquanto estiver com um pedido na mão.
               </p>
               <button type="button" className="btn btn-primario" onClick={() => entrarComGoogle('/entregador')}>Entrar com Google</button>
+              <BotaoApple destino="/entregador" />
             </section>
           )}
           {auth.status === 'in' && erro && !dados && <div className="aviso aviso-erro" role="alert">{erro}</div>}

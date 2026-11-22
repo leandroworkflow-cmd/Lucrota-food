@@ -1,0 +1,20 @@
+{
+  "appId": "br.com.broke.app",
+  "appName": "Brokê",
+  "webDir": "www",
+  "server": {
+    "url": "https://lucrotafood.vercel.app",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#5c0297"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#5c0297",
+      "showSpinner": false
+    }
+  }
+}
