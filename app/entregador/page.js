@@ -6,6 +6,7 @@ import Mapa from '../../components/Mapa';
 import BotaoAjuda from '../../components/BotaoAjuda';
 import Marca from '../../components/Marca';
 import Documentos from './Documentos';
+import { Icone } from '../../components/Icones';
 import SaqueSaldo from '../../components/SaqueSaldo';
 import { api } from '../../lib/api-cliente';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
@@ -150,7 +151,7 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
 
       {!saiu && (
         <div className={p.chegou_loja_em ? 'aviso' : 'entrega-info'} role="status">
-          {p.chegou_loja_em ? '✅ A loja foi avisada que você chegou. Pegue o pedido e toque em "Peguei o pedido".' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
+          {p.chegou_loja_em ? 'A loja foi avisada que você chegou. Pegue o pedido e toque em "Peguei o pedido".' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
         </div>
       )}
 
@@ -459,7 +460,7 @@ function Painel({ dados, recarregar, aoSair }) {
         <div style={{ display: 'grid', gap: 4 }}>
           <strong style={{ fontSize: 18 }}>{pOf.dl_lojas?.nome}</strong>
           <span className="muted">Retirar: {[pOf.dl_lojas?.endereco, pOf.dl_lojas?.bairro].filter(Boolean).join(', ')}</span>
-          {pOf.distancia_m != null && <span>🏪 A {textoDistancia(pOf.distancia_m)} da loja · cerca de {textoTempo(pOf.tempo_s)} até lá</span>}
+          {pOf.distancia_m != null && <span><Icone nome="loja" tam={17} style={{ verticalAlign: '-3px' }} /> A {textoDistancia(pOf.distancia_m)} da loja · cerca de {textoTempo(pOf.tempo_s)} até lá</span>}
           <span className="muted">Entregar no bairro: {pOf.bairro || 'informado após aceitar'}</span>
         </div>
         <button type="button" className="btn btn-primario ent-grande" disabled={ocupado} onClick={() => { setTratadas((x) => new Set(x).add(pOf.id)); setOferta(null); setAberto(true); aceitar(pOf.id); }}>
@@ -472,28 +473,55 @@ function Painel({ dados, recarregar, aoSair }) {
     </div>
   );
 
+  const livreSaque = conta.saldo >= 10;
+  const Linha = ({ icone, texto, direita, onClick, href, alerta }) => {
+    const conteudo = (
+      <>
+        <span className="ent-menu-ico"><Icone nome={icone} tam={22} /></span>
+        <span className="ent-menu-txt">{texto}</span>
+        {direita}
+        {alerta && <span className="ent-ponto-fixo" aria-label="Requer atenção" />}
+        <Icone nome="direita" tam={18} className="ent-menu-seta" />
+      </>
+    );
+    return href ? (
+      <a className="ent-menu-linha" href={href} target="_blank" rel="noopener noreferrer">{conteudo}</a>
+    ) : (
+      <button type="button" className="ent-menu-linha" onClick={onClick}>{conteudo}</button>
+    );
+  };
   const gaveta = menu && (
-    <>
-      <div className="ent-gaveta-fundo" onClick={() => setMenu(false)} />
-      <nav className="ent-gaveta" aria-label="Menu do entregador">
-        <div className="ent-quem">
-          <Marca href="/entregador" />
-          <div style={{ marginTop: 12, fontWeight: 700, fontSize: 18 }}>{ent.nome}</div>
-          <div className="muted" style={{ fontSize: 14 }}>{VEICULOS[ent.veiculo]} · {ent.exclusivo ? `Loja ${ent.loja_nome || ''}` : 'Plataforma'}</div>
+    <nav className="ent-menu" aria-label="Menu do entregador">
+      <div className="ent-menu-topo">
+        <button type="button" className="ent-redondo" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="voltar" /></button>
+        <Marca href="/entregador" />
+        <span style={{ width: 46 }} />
+      </div>
+      <div className="ent-menu-corpo">
+        <div className="ent-perfil">
+          <span className="ent-avatar" aria-hidden="true">{ent.nome.trim().charAt(0).toUpperCase()}</span>
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ fontSize: 19, display: 'block' }}>{ent.nome}</strong>
+            <span className="muted" style={{ fontSize: 14 }}>{VEICULOS[ent.veiculo]} · {ent.exclusivo ? `Loja ${ent.loja_nome || ''}` : 'Plataforma'}</span>
+          </div>
         </div>
-        <button type="button" onClick={() => irPara('mapa')}>🏍️ Início</button>
-        <button type="button" onClick={() => irPara('ganhos')}>💰 Ganhos <span className="muted">{saldoTxt}</span></button>
-        {!ent.exclusivo && (
-          <button type="button" onClick={() => irPara('documentos')}>
-            📄 Documentos {docs !== 'aprovado' && <span className="ent-etiqueta">{docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Corrigir' : 'Enviar'}</span>}
-          </button>
-        )}
-        <button type="button" onClick={() => irPara('perfil')}>👤 Perfil</button>
-        <a href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">💬 Suporte e ajuda</a>
-        <button type="button" onClick={() => irPara('config')}>⚙️ Configurações</button>
-        <button type="button" onClick={aoSair}>↪ Sair</button>
-      </nav>
-    </>
+        <div className="ent-indic">
+          <div><span className="muted">Taxa de aceitação</span><strong>{ind.aceitacao != null ? `${ind.aceitacao}%` : '—'}</strong></div>
+          <div><span className="muted">Taxa de finalização</span><strong>{ind.finalizacao != null ? `${ind.finalizacao}%` : '—'}</strong></div>
+        </div>
+        <div className="ent-menu-lista">
+          <Linha icone="ganhos" texto="Ganhos" direita={<span className="muted">{saldoTxt}</span>} onClick={() => irPara('ganhos')} />
+          <Linha icone="carteira" texto="Sacar saldo" direita={livreSaque ? <span className="ent-etiqueta">{brl(conta.saldo)}</span> : null} onClick={() => irPara('ganhos')} />
+          {!ent.exclusivo && (
+            <Linha icone="docs" texto="Documentos" alerta={docs !== 'aprovado' && docs !== 'em_analise'} direita={docs !== 'aprovado' ? <span className="ent-etiqueta">{docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Corrigir' : 'Enviar'}</span> : <Icone nome="ok" tam={18} className="ent-verde" />} onClick={() => irPara('documentos')} />
+          )}
+          <Linha icone="perfil" texto="Perfil" onClick={() => irPara('perfil')} />
+          <Linha icone="suporte" texto="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} />
+          <Linha icone="ajustes" texto="Configurações" onClick={() => irPara('config')} />
+          <Linha icone="sair" texto="Sair" onClick={aoSair} />
+        </div>
+      </div>
+    </nav>
   );
 
   if (tela !== 'mapa') {
@@ -503,7 +531,7 @@ function Painel({ dados, recarregar, aoSair }) {
         {gaveta}
         {ofertaUI}
         <div className="ent-tela-topo">
-          <button type="button" className="ent-redondo" aria-label="Voltar" onClick={() => setTela('mapa')}>←</button>
+          <button type="button" className="ent-redondo" aria-label="Voltar" onClick={() => setTela('mapa')}><Icone nome="voltar" /></button>
           <h1>{titulos[tela]}</h1>
         </div>
         <div className="ent-tela">
@@ -543,7 +571,7 @@ function Painel({ dados, recarregar, aoSair }) {
               <div className="ent-linha"><span className="muted">Tipo</span><strong>{ent.exclusivo ? `Da loja ${ent.loja_nome || ''}` : 'Da plataforma'}</strong></div>
               {!ent.exclusivo && <div className="ent-linha"><span className="muted">Documentos</span><strong>{docs === 'aprovado' ? 'Aprovados' : docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Recusados' : 'Não enviados'}</strong></div>}
               <small>Para mudar nome, telefone ou veículo, fale com o suporte.</small>
-              <a className="btn" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">💬 Falar com o suporte</a>
+              <a className="btn" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer"><Icone nome="suporte" tam={18} /> Falar com o suporte</a>
             </div>
           )}
           {tela === 'config' && (
@@ -585,20 +613,41 @@ function Painel({ dados, recarregar, aoSair }) {
       {ofertaUI}
       <Mapa pontos={pontosMapa} altura={altMapa} rotuloMapa="Mapa com a sua posição e as lojas com corrida" />
       <div className="ent-topo">
-        <button type="button" className="ent-redondo" aria-label="Abrir menu" onClick={() => setMenu(true)}>☰{pendenciasAbertas.length > 0 && <span className="ent-ponto" />}</button>
-        <button type="button" className={conta.saldo < 0 ? 'ent-saldo neg' : 'ent-saldo'} onClick={() => setTela('ganhos')}>{saldoTxt}</button>
-        <a className="ent-redondo" aria-label="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer">?</a>
+        <button type="button" className="ent-redondo" aria-label="Abrir menu" onClick={() => setMenu(true)}>
+          <Icone nome="menu" />
+          {pendenciasAbertas.length > 0 && <span className="ent-ponto" />}
+        </button>
+        <div className="ent-centro">
+          <button type="button" className={conta.saldo < 0 ? 'ent-saldo neg' : 'ent-saldo'} onClick={() => setTela('ganhos')} aria-label={`Saldo ${saldoTxt}. Abrir ganhos`}>
+            {saldoTxt}
+            <Icone nome="baixo" tam={18} />
+          </button>
+          {livreSaque && (
+            <button type="button" className="ent-chip ent-chip-roxo" onClick={() => setTela('ganhos')}>
+              <Icone nome="carteira" tam={16} /> Sacar saldo <Icone nome="direita" tam={14} />
+            </button>
+          )}
+          {!precisaDocs && (
+            <span className={ent.online ? 'ent-chip ent-chip-on' : 'ent-chip'}>
+              <span className="ent-bolinha" /> {ent.online ? 'Online' : 'Offline'}
+            </span>
+          )}
+        </div>
+        <a className="ent-redondo" aria-label="Suporte e ajuda" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer"><Icone nome="suporte" /></a>
       </div>
 
       <div className={aberto ? 'ent-gav ent-gav-aberta' : 'ent-gav'}>
-        <button type="button" className="ent-alca" aria-expanded={aberto} onClick={() => setAberto((x) => !x)}>
+        <button type="button" className="ent-alca" aria-expanded={aberto} aria-label={aberto ? 'Recolher painel' : 'Expandir painel'} onClick={() => setAberto((x) => !x)}>
           <span className="ent-alca-barra" />
-          <span className="ent-linha" style={{ width: '100%' }}>
-            <span style={{ fontWeight: 600 }}>{textoStatus}</span>
-            {pendenciasAbertas.length > 0 && <span className="ent-etiqueta">{pendenciasAbertas.length} pendência{pendenciasAbertas.length > 1 ? 's' : ''}</span>}
-            <span aria-hidden="true">{aberto ? '⌄' : '⌃'}</span>
-          </span>
         </button>
+        {!aberto && pendenciasAbertas[0] && (
+          <div className="ent-cartao-pend">
+            <Icone nome="alerta" tam={22} className="ent-amarelo" />
+            <span style={{ flex: 1 }}>{pendenciasAbertas[0].texto}</span>
+            <button type="button" className="btn btn-pequeno" onClick={() => setTela(pendenciasAbertas[0].tela)}>{pendenciasAbertas[0].acao}</button>
+          </div>
+        )}
+        {!aberto && !pendenciasAbertas[0] && <div className="ent-status-linha">{textoStatus}</div>}
 
         {aberto && (
           <div className="ent-gav-corpo">
@@ -649,7 +698,7 @@ function Painel({ dados, recarregar, aoSair }) {
                         <br />
                         Entregar no bairro: {p.bairro || 'informado após aceitar'}
                       </small>
-                      {p.distancia_m != null && <div style={{ fontSize: 14, fontWeight: 600 }}>🏪 A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá</div>}
+                      {p.distancia_m != null && <div style={{ fontSize: 14, fontWeight: 600 }}><Icone nome="loja" tam={17} style={{ verticalAlign: '-3px' }} /> A {textoDistancia(p.distancia_m)} da loja · cerca de {textoTempo(p.tempo_s)} até lá</div>}
                       <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => aceitar(p.id)}>Aceitar corrida</button>
                     </div>
                   ))
@@ -659,19 +708,16 @@ function Painel({ dados, recarregar, aoSair }) {
           </div>
         )}
 
-        <div className="ent-gav-rodape">
+        <div className="ent-barra">
+          <button type="button" className="ent-redondo ent-redondo-g" aria-label="Configurações" onClick={() => setTela('config')}><Icone nome="ajustes" /></button>
           {precisaDocs ? (
-            docs === 'em_analise' ? (
-              <button type="button" className="btn ent-grande" onClick={() => setTela('documentos')}>Ver meus documentos</button>
-            ) : (
-              <button type="button" className="btn btn-primario ent-grande" onClick={() => setTela('documentos')}>
-                {docs === 'reprovado' ? 'Corrigir documentos' : 'Enviar documentos'}
-              </button>
-            )
+            <button type="button" className={docs === 'em_analise' ? 'ent-pilula ent-pilula-sec' : 'ent-pilula'} onClick={() => setTela('documentos')}>
+              {docs === 'em_analise' ? 'Ver meus documentos' : docs === 'reprovado' ? 'Corrigir documentos' : 'Enviar documentos'}
+            </button>
           ) : (
             <button
               type="button"
-              className={ent.online && ativas.length > 0 ? 'btn ent-grande' : 'btn btn-primario ent-grande'}
+              className={ent.online ? 'ent-pilula ent-pilula-sec' : 'ent-pilula'}
               onClick={ent.online ? () => (ativas.length === 0 || window.confirm('Ao se desconectar você deixa de receber novas corridas. As que já aceitou continuam.')) && alternarOnline() : ligar}
               disabled={ocupado}
               aria-pressed={ent.online}
@@ -679,6 +725,7 @@ function Painel({ dados, recarregar, aoSair }) {
               {ent.online ? 'Desconectar' : 'Conectar'}
             </button>
           )}
+          <button type="button" className="ent-redondo ent-redondo-g" aria-label="Ganhos e extrato" onClick={() => setTela('ganhos')}><Icone nome="lista" /></button>
         </div>
       </div>
     </div>

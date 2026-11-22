@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, apiEnviar } from '../../lib/api-cliente';
 import { ROTULO_DOC } from '../../lib/documentos';
 import { prepararDocumento } from '../../lib/imagem';
+import { Icone } from '../../components/Icones';
 
 const CATEGORIAS = ['A', 'AB', 'B', 'AC', 'AD', 'AE', 'C', 'D', 'E'];
 const AJUDA = {
@@ -89,7 +90,7 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
     <div className="ent-bloco">
       <div className="ent-linha">
         <strong>{ROTULO_DOC[tipo]}</strong>
-        <span className={enviado ? 'ent-ok' : 'ent-pend'}>{enviado ? '✓ Enviado' : 'Falta enviar'}</span>
+        <span className={enviado ? 'ent-ok' : 'ent-pend'}>{enviado ? <><Icone nome="ok" tam={16} style={{ verticalAlign: '-3px' }} /> Enviado</> : 'Falta enviar'}</span>
       </div>
       <small>{AJUDA[tipo]}</small>
       {camera ? (
@@ -158,8 +159,8 @@ export default function Documentos({ veiculo, aoMudar }) {
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      {s.status === 'aprovado' && <div className="ent-aviso ent-aviso-ok">✓ Documentos aprovados. Você já pode receber corridas.</div>}
-      {s.status === 'em_analise' && <div className="ent-aviso">⏳ Documentos em análise. Avisamos por notificação assim que houver resposta.</div>}
+      {s.status === 'aprovado' && <div className="ent-aviso ent-aviso-ok"><Icone nome="ok" tam={18} style={{ verticalAlign: '-3px' }} /> Documentos aprovados. Você já pode receber corridas.</div>}
+      {s.status === 'em_analise' && <div className="ent-aviso"><Icone nome="relogio" tam={18} style={{ verticalAlign: '-3px' }} /> Documentos em análise. Avisamos por notificação assim que houver resposta.</div>}
       {s.status === 'reprovado' && (
         <div className="ent-aviso ent-aviso-erro">
           Documentos recusados{s.motivo ? `: ${s.motivo}` : '.'} Corrija e envie de novo.

@@ -205,3 +205,10 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 - Este fluxo é manual: o Pix é feito por você. O Pix automático depende de um parceiro de pagamentos autorizado (veja a conversa sobre split e subcontas).
 
 > Nota técnica: a tabela `dl_ofertas` (SQL 17) liga pedidos e entregadores, então qualquer consulta que traga o entregador junto com o pedido precisa dizer qual ligação usar: `dl_entregadores!entregador_id(...)`. Sem isso o banco responde "more than one relationship".
+
+## Visual de app do entregador (v25)
+
+- O `/entregador` agora segue o jeito de um app de motorista: fundo grafite escuro, **roxo** nos botões, traços, ícones e no botão grande Conectar; amarelo só para dinheiro, contagem da corrida e alertas.
+- Ícones de linha próprios (`components/Icones.js`) no lugar dos emojis; menu em tela cheia com linhas, setas e indicadores de aceitação/finalização; barra inferior com botão Conectar e dois botões redondos.
+- Instalável: abra `/entregador` no celular e use "Adicionar à tela inicial". O manifesto próprio fica em `app/entregador/manifest.webmanifest/route.js`.
+- Não há SQL novo.
