@@ -3,7 +3,7 @@
   "appName": "Brokê",
   "webDir": "www",
   "server": {
-    "url": "https://lucrotafood.vercel.app",
+    "url": "https://brokeap.vercel.app",
     "cleartext": false
   },
   "ios": {
