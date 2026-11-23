@@ -54,7 +54,9 @@ export default function ConvitesParceiros() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      const fechados = lerFechados();
+      // Abrir /?convites=1 mostra os dois cartões de novo (para testar), mesmo que já tenham sido fechados.
+      const forcar = new URLSearchParams(window.location.search).get('convites') === '1';
+      const fechados = forcar ? [] : lerFechados();
       setAbertos(CARTOES.map((c) => c.id).filter((id) => !fechados.includes(id)));
     }, 700);
     return () => clearTimeout(t);
