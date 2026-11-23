@@ -1,10 +1,11 @@
+// App instalável do cliente (abre na tela inicial). Lojista e entregador têm manifestos próprios.
 export default function manifest() {
   return {
-    name: 'Brokê | Painel da loja',
-    short_name: 'Painel',
-    description: 'Receba e gerencie os pedidos da sua loja.',
-    id: '/painel',
-    start_url: '/painel',
+    name: 'Brokê | Peça. Receba. Aproveite.',
+    short_name: 'Brokê',
+    description: 'Peça comida e mercadorias das lojas do seu bairro.',
+    id: '/',
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     lang: 'pt-BR',

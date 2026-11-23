@@ -253,3 +253,9 @@ Primeira aba do `/admin`. Mostra, sem SQL e atualizando sozinho a cada 30 s: cad
 > Nota: o ícone do navegador agora fica em `public/favicon.ico` (arquivo estático). Um `app/favicon.ico` gerado por script fez o build da Vercel falhar com "unable to decode image data"; o `app/icon.png` continua valendo para os navegadores modernos.
 
 - Para rever os convites depois de fechá-los, abra `/?convites=1` (ignora o "fechado há menos de 7 dias").
+
+## Três apps instaláveis (v35)
+
+- **Cliente** (`/`, manifesto global `app/manifest.js`): abre na tela inicial, onde aparecem os convites "Seja entregador" e "Seja parceiro lojista".
+- **Lojista** (`/painel`, `app/painel/manifest.webmanifest`) e **Entregador** (`/entregador`): cada um com o seu manifesto, para o ícone instalado abrir direto no painel certo.
+- Quem já instalou antes precisa remover o ícone e instalar de novo para pegar o manifesto novo.
