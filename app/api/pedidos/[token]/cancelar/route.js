@@ -28,7 +28,7 @@ export async function POST(request, { params }) {
 
   const { data: p } = await admin
     .from('dl_pedidos')
-    .select('id,numero,status,forma_pagamento,pagamento_status,mp_payment_id,subtotal,taxa_entrega,total,entregador_id,preparo_em,atualizado_em,loja_id,dl_lojas(dono_id,nome)')
+    .select('id,numero,status,forma_pagamento,pagamento_status,mp_payment_id,subtotal,taxa_entrega,total,divida_cliente,cliente_telefone,entregador_id,preparo_em,chegou_loja_em,atualizado_em,loja_id,dl_lojas(dono_id,nome)')
     .eq('token', token)
     .maybeSingle();
   if (!p) return erro('Pedido não encontrado.', 404);
@@ -50,7 +50,7 @@ export async function POST(request, { params }) {
     .maybeSingle();
   if (!preso) return erro('O pedido acabou de mudar de etapa. Atualize a tela e tente de novo.', 409);
 
-  // 2) Dinheiro: devolve o que foi pago, menos a taxa.
+  // 2) Pix/cartão: devolve o que foi pago, menos a taxa (a taxa sai do valor pago).
   let novoPagamento = null;
   if (formaOnline(p.forma_pagamento) && p.mp_payment_id) {
     let deuCerto = true;
@@ -74,13 +74,31 @@ export async function POST(request, { params }) {
     if (novoPagamento) await admin.from('dl_pedidos').update({ pagamento_status: novoPagamento }).eq('id', p.id);
   }
 
-  // 3) A taxa fica na conta corrente: produtos para a loja, entrega para o entregador (se já tinha aceitado).
+  // 3) Pix/cartão: a taxa já está com a plataforma, então entra na hora na conta de cada um (produtos para a loja, R$ 3,00 para o entregador).
+  //    Dinheiro: nada foi pago ainda. O cliente fica com saldo devedor e a loja e o entregador só recebem quando ele quitar.
   if (c.taxa > 0) {
-    const linhas = [];
-    if (c.taxa_loja > 0) linhas.push({ conta_tipo: 'loja', loja_id: p.loja_id, pedido_id: p.id, tipo: 'taxa_cancelamento', valor: c.taxa_loja, descricao: `Taxa de cancelamento do pedido ${p.numero}` });
-    if (c.taxa_entregador > 0 && p.entregador_id) linhas.push({ conta_tipo: 'entregador', entregador_id: p.entregador_id, pedido_id: p.id, tipo: 'taxa_cancelamento', valor: c.taxa_entregador, descricao: `Taxa de cancelamento do pedido ${p.numero}` });
-    const { error } = await admin.from('dl_lancamentos').upsert(linhas, { onConflict: 'pedido_id,tipo,conta_tipo', ignoreDuplicates: true });
-    if (error) console.error('Taxa de cancelamento não lançada:', p.numero, error.message);
+    if (c.devedor) {
+      const { error: eDiv } = await admin.from('dl_dividas_cliente').upsert(
+        {
+          telefone: p.cliente_telefone,
+          pedido_id: p.id,
+          valor: c.taxa,
+          descricao: `Taxa de cancelamento do pedido ${p.numero}`,
+          loja_id: c.taxa_loja > 0 ? p.loja_id : null,
+          valor_loja: c.taxa_loja,
+          entregador_id: c.taxa_entregador > 0 && p.entregador_id ? p.entregador_id : null,
+          valor_entregador: c.taxa_entregador > 0 && p.entregador_id ? c.taxa_entregador : 0,
+        },
+        { onConflict: 'pedido_id', ignoreDuplicates: true }
+      );
+      if (eDiv) console.error('Saldo devedor não registrado:', p.numero, eDiv.message);
+    } else {
+      const linhas = [];
+      if (c.taxa_loja > 0) linhas.push({ conta_tipo: 'loja', loja_id: p.loja_id, pedido_id: p.id, tipo: 'taxa_cancelamento', valor: c.taxa_loja, descricao: `Taxa de cancelamento do pedido ${p.numero}` });
+      if (c.taxa_entregador > 0 && p.entregador_id) linhas.push({ conta_tipo: 'entregador', entregador_id: p.entregador_id, pedido_id: p.id, tipo: 'taxa_cancelamento', valor: c.taxa_entregador, descricao: `Taxa de cancelamento do pedido ${p.numero}` });
+      const { error } = await admin.from('dl_lancamentos').upsert(linhas, { onConflict: 'pedido_id,tipo,conta_tipo', ignoreDuplicates: true });
+      if (error) console.error('Taxa de cancelamento não lançada:', p.numero, error.message);
+    }
   }
 
   // 4) Avisos.

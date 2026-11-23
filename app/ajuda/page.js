@@ -7,7 +7,7 @@ import { SITE } from '../../lib/site';
 export const metadata = { title: 'Central de ajuda', description: `Fale com o ${SITE.nome} pelo WhatsApp.` };
 
 const DUVIDAS = [
-  ['Como cancelo um pedido?', 'Abra o pedido em Meus pedidos e toque em Cancelar pedido. É grátis até 3 minutos depois de a loja começar o preparo. Entre 3 e 20 minutos há uma taxa nos pedidos pagos pelo app, e depois de 20 minutos o cancelamento volta a ser grátis.'],
+  ['Como cancelo um pedido?', 'Abra o pedido em Meus pedidos e toque em Cancelar pedido. É grátis até 3 minutos depois de a loja começar o preparo. Entre 3 e 20 minutos há uma taxa de 15% dos produtos para a loja, e, se o entregador já esperou mais de 10 minutos na loja, R$ 3,00 para ele. Depois de 20 minutos o cancelamento volta a ser grátis. Em Pix ou cartão a taxa é descontada do valor pago; em dinheiro ela fica como saldo devedor no seu próximo pedido pelo app.'],
   ['O que é o código de entrega?', 'Cada pedido tem um código de 4 números, que aparece na tela do pedido. Informe-o ao entregador só quando receber o pedido: é com ele que a entrega é concluída.'],
   ['Paguei e o pedido não apareceu.', 'Pix e cartão pelo app são confirmados na hora. Se passou de alguns minutos, fale com a gente informando o número do pedido.'],
   ['Quando o lojista e o entregador recebem?', 'Os repasses são feitos toda semana por Pix, na chave cadastrada. O saldo aparece em Conta, no painel da loja e no app do entregador.'],

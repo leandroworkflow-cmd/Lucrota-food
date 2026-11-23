@@ -16,7 +16,7 @@ export async function GET(request) {
   const { data: ativas, error: e1 } = await admin
     .from('dl_pedidos')
     .select(
-      `id,numero,status,loja_id,chegou_loja_em,pronto_em,cliente_nome,cliente_telefone,endereco,bairro,complemento,observacao,forma_pagamento,troco_para,total,taxa_entrega,destino_lat,destino_lng,dl_lojas(${LOJA})`
+      `id,numero,status,loja_id,chegou_loja_em,pronto_em,cliente_nome,cliente_telefone,endereco,bairro,complemento,observacao,forma_pagamento,troco_para,total,taxa_entrega,frete_entregador,destino_lat,destino_lng,dl_lojas(${LOJA})`
     )
     .eq('entregador_id', ent.id)
     .in('status', ['aceito', 'preparo', 'saiu'])
@@ -27,7 +27,7 @@ export async function GET(request) {
   if (ent.online && (ativas || []).length < MAX_ENTREGAS_ATIVAS) {
     let q = admin
       .from('dl_pedidos')
-      .select(`id,numero,status,loja_id,bairro,taxa_entrega,forma_pagamento,total,entrega,entregador_id,dl_lojas(${LOJA})`)
+      .select(`id,numero,status,loja_id,bairro,taxa_entrega,frete_entregador,forma_pagamento,total,entrega,entregador_id,dl_lojas(${LOJA})`)
       .eq('entrega', 'procurando')
       .is('entregador_id', null)
       .in('status', ['aceito', 'preparo'])

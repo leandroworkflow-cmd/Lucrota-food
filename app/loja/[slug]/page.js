@@ -77,8 +77,8 @@ export default async function PaginaLoja({ params }) {
         {loja.descricao && <p className="muted" style={{ margin: '4px 0 0' }}>{loja.descricao}</p>}
 
         <div className="pilulas">
-          <span className={Number(loja.taxa_entrega) > 0 ? 'pilula' : 'pilula gratis'}>
-            🛵 {Number(loja.taxa_entrega) > 0 ? `Entrega ${brl(loja.taxa_entrega)}` : 'Entrega grátis'}
+          <span className="pilula">
+            🛵 Entrega a partir de {brl(5.9)}
           </span>
           {loja.tempo_estimado && <span className="pilula">🕒 {loja.tempo_estimado}</span>}
           {Number(loja.pedido_minimo) > 0 && <span className="pilula">🧾 Mínimo {brl(loja.pedido_minimo)}</span>}

@@ -10,7 +10,7 @@ import RastreioEntrega from '../../../components/RastreioEntrega';
 import BotaoAjuda from '../../../components/BotaoAjuda';
 import Rodape from '../../../components/Rodape';
 import { brl, hora, linkWhatsApp } from '../../../lib/format';
-import { PCT_PRODUTOS } from '../../../lib/cancelamento';
+import { ESPERA_ENTREGADOR_MIN, PCT_PRODUTOS, TAXA_ENTREGADOR } from '../../../lib/cancelamento';
 import { FORMAS } from '../../../lib/pedido';
 
 const ETAPAS = [
@@ -46,6 +46,7 @@ function CancelarPedido({ token, cancelamento, aoMudar }) {
     return (
       <div className="bloco">
         {c.gratis_ate && <p className="muted" style={{ margin: 0 }}>Cancelamento grátis até as {hora(c.gratis_ate)}. Depois disso, cobramos uma taxa de {PCT_PRODUTOS}% dos produtos até as {hora(c.sem_taxa_apos)}; passando desse horário, o cancelamento volta a ser grátis.</p>}
+        {c.entregador_apos && <p className="muted" style={{ margin: 0 }}>O entregador já está na loja. Se ele esperar mais de {ESPERA_ENTREGADOR_MIN} minutos (até as {hora(c.entregador_apos)}), cancelar passa a ter uma taxa de {brl(TAXA_ENTREGADOR)} para ele.</p>}
         {!c.gratis_ate && c.taxa > 0 && c.sem_taxa_apos && <p className="muted" style={{ margin: 0 }}>Se o pedido não sair até as {hora(c.sem_taxa_apos)}, você cancela sem taxa.</p>}
         {msg && <div className="aviso aviso-erro" role="alert">{msg}</div>}
         <div>
@@ -61,8 +62,15 @@ function CancelarPedido({ token, cancelamento, aoMudar }) {
       <h3 style={{ margin: 0 }}>Cancelar este pedido?</h3>
       {c.taxa > 0 ? (
         <p style={{ margin: 0 }}>
-          A loja já está preparando o seu pedido. Se cancelar agora, será cobrada uma <strong>taxa de cancelamento de {brl(c.taxa)}</strong> ({PCT_PRODUTOS}% dos produtos
-          {c.taxa_entregador > 0 ? ' mais a taxa de entrega, porque um entregador já aceitou a corrida' : ''}). Devolvemos <strong>{brl(c.reembolso)}</strong> ao seu pagamento.
+          Se cancelar agora, será cobrada uma <strong>taxa de cancelamento de {brl(c.taxa)}</strong>
+          {c.taxa_loja > 0 ? ` (${PCT_PRODUTOS}% dos produtos para a loja` : ' ('}
+          {c.taxa_loja > 0 && c.taxa_entregador > 0 ? ' + ' : ''}
+          {c.taxa_entregador > 0 ? `${brl(c.taxa_entregador)} para o entregador, que esperou mais de ${ESPERA_ENTREGADOR_MIN} minutos na loja` : ''}).{' '}
+          {c.devedor ? (
+            <>Como o pagamento seria em dinheiro, esse valor fica como <strong>saldo devedor</strong> e é somado ao seu próximo pedido pelo app (Pix ou cartão).</>
+          ) : (
+            <>Descontamos do valor pago e devolvemos <strong>{brl(c.reembolso)}</strong>.</>
+          )}
         </p>
       ) : (
         <p style={{ margin: 0 }}>{c.reembolso > 0 ? `Sem custo: devolvemos os ${brl(c.reembolso)} pagos pelo app.` : 'Sem custo para você.'}</p>
@@ -70,7 +78,7 @@ function CancelarPedido({ token, cancelamento, aoMudar }) {
       {msg && <div className="aviso aviso-erro" role="alert">{msg}</div>}
       <div className="opcoes">
         <button type="button" className="btn btn-primario" disabled={ocupado} onClick={cancelar}>
-          {ocupado ? 'Cancelando…' : c.taxa > 0 ? `Cancelar e pagar ${brl(c.taxa)}` : 'Sim, cancelar'}
+          {ocupado ? 'Cancelando…' : c.taxa > 0 ? `Cancelar e aceitar a taxa de ${brl(c.taxa)}` : 'Sim, cancelar'}
         </button>
         <button type="button" className="btn" disabled={ocupado} onClick={() => setConfirmando(false)}>
           Manter pedido
@@ -175,7 +183,7 @@ export default function Acompanhar() {
 
             {pg?.status === 'reembolsado_parcial' && (
               <div className="aviso" role="status">
-                Você cancelou o pedido. Foi cobrada a taxa de cancelamento de {brl(pedido.taxa_cancelamento)} e devolvemos {brl(Number(pedido.total) - Number(pedido.taxa_cancelamento))} {cartao ? 'para a fatura do cartão' : 'para a sua conta'} pelo Mercado Pago.
+                Você cancelou o pedido. Foi cobrada a taxa de cancelamento de {brl(pedido.taxa_cancelamento)} e devolvemos {brl(Number(pedido.total) + Number(pedido.divida_cliente || 0) - Number(pedido.taxa_cancelamento))} {cartao ? 'para a fatura do cartão' : 'para a sua conta'} pelo Mercado Pago.
               </div>
             )}
             {pg?.status === 'cancelado' && (

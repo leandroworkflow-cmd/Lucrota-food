@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { brl, parseValor, round2 } from '../lib/format';
+import { calcularFrete, FRETE_MINIMO } from '../lib/frete';
+import { estimativaSemRota } from '../lib/geo';
 import { FORMAS, FORMAS_ATIVAS } from '../lib/pedido';
 import { guardarPedido } from '../lib/meus-pedidos';
 import { emojiDoItem } from '../lib/visual';
@@ -44,6 +46,7 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
   const [troco, setTroco] = useState('');
   const [observacao, setObservacao] = useState('');
   const [isca, setIsca] = useState('');
+  const [aceitaDivida, setAceitaDivida] = useState(false); // cliente confirmou somar a taxa de cancelamento antiga
   const [local, setLocal] = useState(null); // { lat, lng } do GPS do cliente (opcional)
   const [buscandoLocal, setBuscandoLocal] = useState(false);
   const [avisoLocal, setAvisoLocal] = useState('');
@@ -141,7 +144,9 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
   const linhas = produtos.filter((p) => sacola[p.id] > 0).map((p) => ({ ...p, qtd: sacola[p.id] }));
   const quantidade = linhas.reduce((s, l) => s + l.qtd, 0);
   const subtotal = round2(linhas.reduce((s, l) => s + Number(l.preco) * l.qtd, 0));
-  const taxa = Number(loja.taxa_entrega) || 0;
+  // Frete por distância. Com o GPS dá para estimar; sem ele mostra o mínimo. O servidor confirma pelo endereço.
+  const estimado = Boolean(local) && Number.isFinite(loja.lat) && Number.isFinite(loja.lng);
+  const taxa = estimado ? calcularFrete(estimativaSemRota({ lat: loja.lat, lng: loja.lng }, local).metros / 1000).cliente : FRETE_MINIMO;
   const total = round2(subtotal + taxa);
   const minimo = Number(loja.pedido_minimo) || 0;
   const faltaMinimo = subtotal < minimo;
@@ -199,10 +204,14 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
           troco: forma === 'dinheiro' && troco.trim() ? parseValor(troco) : null,
           observacao,
           site: isca,
+          aceita_divida: aceitaDivida,
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Não consegui enviar o pedido.');
+      if (!res.ok) {
+        if (json.divida) setAceitaDivida(true); // na próxima tentativa o cliente já confirmou
+        throw new Error(json.error || 'Não consegui enviar o pedido.');
+      }
       gravar(CHAVE_CLIENTE, cliente);
       gravar(chaveSacola, {});
       setSacola({});
@@ -463,7 +472,7 @@ export default function Cardapio({ loja, produtos, chaveMP }) {
               </div>
               <div>
                 <span>Entrega</span>
-                <span>{taxa > 0 ? brl(taxa) : 'Grátis'}</span>
+                <span>{estimado ? brl(taxa) : `a partir de ${brl(taxa)}`}</span>
               </div>
               <div className="total">
                 <span>Total</span>

@@ -1,7 +1,8 @@
 import { randomInt } from 'node:crypto';
 import { gerarCodigo } from '../../../lib/codigo';
 import { distanciaM, noBrasil } from '../../../lib/geo';
-import { geocodificar } from '../../../lib/geo-servidor';
+import { distanciaDeRotaKm, geocodificar } from '../../../lib/geo-servidor';
+import { calcularFrete } from '../../../lib/frete';
 import { validarEntradaCartao, mensagemRecusa } from '../../../lib/cartao';
 import { clienteMPDoPerfil, perfilDoCliente } from '../../../lib/conta-servidor';
 import { criarCartao, criarPix, listarCartoes, mpConfigurado, salvarCartaoMP } from '../../../lib/mp-servidor';
@@ -14,7 +15,7 @@ import { clienteServico, usuarioDaRequisicao } from '../../../lib/servidor';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const erro = (error, status) => Response.json({ error }, { status });
+const erro = (error, status, extra) => Response.json({ error, ...extra }, { status });
 
 // Limite simples por IP (por instância do servidor): freia quem dispara pedidos em massa.
 const recentes = new Map();
@@ -69,8 +70,10 @@ export async function POST(request) {
     .eq('loja_id', loja.id);
   if (eProd) return erro('Não consegui enviar o pedido agora.', 502);
 
-  const v = validarPedido({ ...loja, aceita_pix_app: Boolean(loja.aceita_pix_app) && mpConfigurado(), aceita_cartao_app: Boolean(loja.aceita_pix_app) && mpConfigurado() }, produtos, body);
-  if (v.erro) return erro(v.erro, 400);
+  const lojaPedido = { ...loja, aceita_pix_app: Boolean(loja.aceita_pix_app) && mpConfigurado(), aceita_cartao_app: Boolean(loja.aceita_pix_app) && mpConfigurado() };
+  // 1ª passada: só valida o que veio (itens, endereço, forma de pagamento). Sem rede, então erro aqui sai rápido.
+  const v0 = validarPedido(lojaPedido, produtos, body);
+  if (v0.erro) return erro(v0.erro, 400);
 
   // Onde entregar: GPS do cliente (se mandou e for plausível) ou o endereço digitado.
   let destino = null;
@@ -79,9 +82,34 @@ export async function POST(request) {
   const pertoDaLoja = (p) => !(Number.isFinite(loja.lat) && Number.isFinite(loja.lng)) || distanciaM(p, { lat: loja.lat, lng: loja.lng }) < 60000;
   if (body?.lat != null && noBrasil(lat, lng) && pertoDaLoja({ lat, lng })) destino = { lat, lng };
   if (!destino) {
-    const g = await geocodificar([v.pedido.endereco, v.pedido.bairro, loja.cidade, 'Brasil'].filter(Boolean).join(', '), 2500);
+    const g = await geocodificar([v0.pedido.endereco, v0.pedido.bairro, loja.cidade, 'Brasil'].filter(Boolean).join(', '), 2500);
     if (g && pertoDaLoja(g)) destino = { lat: g.lat, lng: g.lng };
   }
+
+  // Frete por distância: até 3,5 km R$ 5,90 fixos; acima disso +R$ 1,00 por km (para o entregador). A loja não define mais a taxa.
+  // Sem a localização da loja ou do cliente não dá para medir: cobra a faixa fixa.
+  let distancia = null;
+  if (destino && Number.isFinite(loja.lat) && Number.isFinite(loja.lng)) {
+    distancia = (await distanciaDeRotaKm({ lat: loja.lat, lng: loja.lng }, destino)).km;
+  }
+  const frete = calcularFrete(distancia);
+  // 2ª passada: o mesmo pedido, agora com a taxa de entrega certa (o total e o troco dependem dela).
+  const v = validarPedido({ ...lojaPedido, taxa_entrega: frete.cliente }, produtos, body);
+  if (v.erro) return erro(v.erro, 400);
+
+  // Saldo devedor de uma taxa de cancelamento antiga (pedido em dinheiro cancelado): se somou ao próximo pedido pelo app.
+  const brlTxt = (n) => `R$ ${Number(n).toFixed(2).replace('.', ',')}`;
+  const { data: dividas } = await admin.from('dl_dividas_cliente').select('valor').eq('telefone', v.pedido.cliente_telefone).is('quitada_em', null);
+  const divida = Math.round((dividas || []).reduce((t, d) => t + Number(d.valor), 0) * 100) / 100;
+  if (divida > 0) {
+    if (v.pedido.forma_pagamento === 'dinheiro') {
+      return erro(`Você tem ${brlTxt(divida)} de taxa de cancelamento em aberto. Para quitar, pague este pedido pelo Pix ou cartão no app.`, 409);
+    }
+    if (body?.aceita_divida !== true) {
+      return erro(`Você tem ${brlTxt(divida)} de taxa de cancelamento em aberto. Ela será somada a este pedido. Toque em enviar de novo para confirmar.`, 409, { divida });
+    }
+  }
+  const valorACobrar = Math.round((v.pedido.total + divida) * 100) / 100;
 
   const cartaoApp = v.pedido.forma_pagamento === 'cartao_app';
   const pixApp = v.pedido.forma_pagamento === 'pix_app';
@@ -103,7 +131,7 @@ export async function POST(request) {
   }
   if (pixApp || cartaoApp) {
     if (!mpConfigurado()) return erro('O pagamento pelo app não está disponível agora.', 503);
-    if (!pagamentoValido(v.pedido.total)) return erro('Este valor não pode ser pago pelo app. Escolha outra forma de pagamento.', 400);
+    if (!pagamentoValido(valorACobrar)) return erro('Este valor não pode ser pago pelo app. Escolha outra forma de pagamento.', 400);
   }
 
   const { data: pedido, error: eIns } = await admin
@@ -112,6 +140,10 @@ export async function POST(request) {
       loja_id: loja.id,
       ...v.pedido,
       codigo_entrega: gerarCodigo(randomInt(0, 10000)),
+      divida_cliente: divida,
+      distancia_km: frete.km,
+      frete_entregador: frete.entregador,
+      frete_plataforma: frete.plataforma,
       destino_lat: destino?.lat ?? null,
       destino_lng: destino?.lng ?? null,
       ...(pixApp || cartaoApp ? { pagamento_status: 'pendente' } : {}),
@@ -127,7 +159,7 @@ export async function POST(request) {
   if (cartaoApp) {
     // Cobra o cartão na conta da plataforma (a taxa do cartão é da plataforma).
     const cobranca = await criarCartao({
-      valor: v.pedido.total,
+      valor: valorACobrar,
       descricao: `Pedido ${pedido.numero} - ${loja.nome}`.slice(0, 100),
       referencia: pedido.id,
       email: emailDoPagador(body?.cliente?.email, pedido.numero),
@@ -166,7 +198,7 @@ export async function POST(request) {
     // Gera o Pix na conta da plataforma (o repasse à loja e ao entregador vai para a conta corrente na entrega).
     // Se falhar, o pedido não fica pendurado.
     const pix = await criarPix({
-      valor: v.pedido.total,
+      valor: valorACobrar,
       descricao: `Pedido ${pedido.numero} - ${loja.nome}`.slice(0, 100),
       referencia: pedido.id,
       email: emailDoPagador(body?.cliente?.email, pedido.numero),

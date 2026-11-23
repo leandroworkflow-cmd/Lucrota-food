@@ -22,7 +22,7 @@ export async function POST(request) {
   if (!admin) return Response.json({ ok: true });
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,token,loja_id,total,status,forma_pagamento,pagamento_status,mp_payment_id,pix_expira_em,taxa_entrega,entregador_id')
+    .select('id,numero,token,loja_id,total,status,forma_pagamento,pagamento_status,mp_payment_id,pix_expira_em,taxa_entrega,divida_cliente,entregador_id')
     .eq('mp_payment_id', id)
     .maybeSingle();
   if (pedido) await sincronizarPagamento(admin, pedido);

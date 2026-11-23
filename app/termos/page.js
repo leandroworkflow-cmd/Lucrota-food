@@ -33,9 +33,11 @@ export default function Termos() {
           <li>O pagamento por Pix ou cartão é feito dentro do app e recebido pela plataforma, que repassa à loja e ao entregador. Também é possível pagar em dinheiro na entrega.</li>
           <li>
             Cancelamento: você pode cancelar pelo app, sem custo, até 3 minutos depois de a loja começar o preparo do pedido.
-            Entre 3 e 20 minutos de preparo, nos pedidos pagos pelo app, é cobrada uma taxa de cancelamento de 15% do valor dos produtos,
-            somada à taxa de entrega se um entregador já tiver aceitado a corrida. Passados 20 minutos de preparo, o pedido é considerado atrasado e o cancelamento é gratuito. O valor da taxa é mostrado antes de você
-            confirmar, e o restante é devolvido ao seu meio de pagamento. A taxa é repassada à loja e ao entregador. Depois que o
+            Entre 3 e 20 minutos de preparo é cobrada uma taxa de cancelamento de 15% do valor dos produtos, que fica com a loja.
+            Se um entregador já estiver esperando na loja há mais de 10 minutos, é cobrada também uma taxa de R$ 3,00, que fica com ele.
+            Passados 20 minutos de preparo, o pedido é considerado atrasado e o cancelamento é gratuito. O valor da taxa é mostrado antes de você
+            confirmar. Nos pedidos pagos pelo app (Pix ou cartão), a taxa é descontada do valor pago e o restante é devolvido ao seu meio de pagamento.
+            Nos pedidos em dinheiro, a taxa fica como saldo devedor e é somada ao seu próximo pedido pelo app. Enquanto houver saldo devedor, novos pedidos em dinheiro não são aceitos. Depois que o
             pedido sai para entrega, o cancelamento deve ser combinado com a loja. Se a loja cancelar, você recebe o valor total de volta.
           </li>
           <li>Informe nome, telefone e endereço corretos. Pedidos com dados falsos podem ser recusados.</li>

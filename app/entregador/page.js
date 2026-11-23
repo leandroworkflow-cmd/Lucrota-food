@@ -459,7 +459,7 @@ function Painel({ dados, recarregar, aoSair }) {
   if (ent.online) {
     corridas.forEach((p) => {
       const l = p.dl_lojas;
-      if (l && Number.isFinite(l.lat)) pontosMapa.push({ id: `l-${p.id}`, tipo: 'loja', lat: l.lat, lng: l.lng, rotulo: `${l.nome} · ${brl(p.taxa_entrega)}` });
+      if (l && Number.isFinite(l.lat)) pontosMapa.push({ id: `l-${p.id}`, tipo: 'loja', lat: l.lat, lng: l.lng, rotulo: `${l.nome} · ${brl(p.frete_entregador ?? p.taxa_entrega)}` });
     });
   }
 
@@ -472,7 +472,7 @@ function Painel({ dados, recarregar, aoSair }) {
           <strong style={{ fontSize: 18 }}>Nova corrida</strong>
           <span className="ent-contagem">{restante}s</span>
         </div>
-        <div className="ent-oferta-valor">{brl(pOf.taxa_entrega)}</div>
+        <div className="ent-oferta-valor">{brl(pOf.frete_entregador ?? pOf.taxa_entrega)}</div>
         <div className="ent-oferta-barra"><div style={{ width: `${(restante / SEGUNDOS_OFERTA) * 100}%` }} /></div>
         <div style={{ display: 'grid', gap: 4 }}>
           <strong style={{ fontSize: 18 }}>{pOf.dl_lojas?.nome}</strong>
@@ -558,7 +558,7 @@ function Painel({ dados, recarregar, aoSair }) {
                 <span className="muted">{conta.saldo < 0 ? 'Você deve à plataforma' : 'A receber da plataforma'}</span>
                 <strong style={{ fontSize: 34, color: conta.saldo < 0 ? '#ff8f86' : undefined }}>{saldoTxt}</strong>
                 <small>
-                  Pix e cartão pelo app: a taxa de entrega entra aqui e você pode sacar por Pix quando quiser, a partir de R$ 10,00. Pagamento em dinheiro: o dinheiro fica com você e a parte da plataforma entra aqui como valor a pagar. Os dois se compensam.
+                  Pix e cartão pelo app: o ganho da entrega (já descontada a taxa da plataforma) entra aqui e você pode sacar por Pix quando quiser, a partir de R$ 10,00. Pagamento em dinheiro: o dinheiro fica com você e a taxa da plataforma (R$ 0,60 por entrega) entra aqui como valor a pagar. Os dois se compensam.
                 </small>
               </div>
               <SaqueSaldo conta="entregador" chave={conta.chave_pix} aoMudar={recarregar} />
@@ -710,7 +710,7 @@ function Painel({ dados, recarregar, aoSair }) {
                     <div key={p.id} className="ent-bloco">
                       <div className="ent-linha">
                         <strong>{p.dl_lojas?.nome} · pedido {p.numero}</strong>
-                        <strong style={{ color: 'var(--amarelo)', fontSize: 18 }}>{brl(p.taxa_entrega)}</strong>
+                        <strong style={{ color: 'var(--amarelo)', fontSize: 18 }}>{brl(p.frete_entregador ?? p.taxa_entrega)}</strong>
                       </div>
                       <small>
                         Retirar: {[p.dl_lojas?.endereco, p.dl_lojas?.bairro].filter(Boolean).join(', ')}
