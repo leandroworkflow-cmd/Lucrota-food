@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AvisosPush from '../../../components/AvisosPush';
 import Marca from '../../../components/Marca';
 import PixPagamento from '../../../components/PixPagamento';
@@ -12,6 +12,7 @@ import Rodape from '../../../components/Rodape';
 import { brl, hora, linkWhatsApp } from '../../../lib/format';
 import { ESPERA_ENTREGADOR_MIN, PCT_PRODUTOS, TAXA_ENTREGADOR } from '../../../lib/cancelamento';
 import { FORMAS } from '../../../lib/pedido';
+import { audioPronto, desbloquearAudio, tocarAlarme, vibrar } from '../../../lib/alarme';
 
 const ETAPAS = [
   ['novo', 'Pedido enviado, aguardando a loja'],
@@ -108,6 +109,23 @@ export default function Acompanhar() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Entregador chegou no endereço: alarme sonoro + vibração + faixa na tela. O som só toca depois de um toque na página.
+  const alertado = useRef(false);
+  const [semSom, setSemSom] = useState(false);
+  useEffect(() => {
+    const liberar = () => { desbloquearAudio(); setSemSom(!audioPronto()); };
+    window.addEventListener('pointerdown', liberar, { once: true });
+    window.addEventListener('keydown', liberar, { once: true });
+    return () => { window.removeEventListener('pointerdown', liberar); window.removeEventListener('keydown', liberar); };
+  }, []);
+  const chegouCliente = pedido?.status === 'saiu' && Boolean(pedido?.chegou_cliente_em);
+  useEffect(() => {
+    if (!chegouCliente || alertado.current) return;
+    alertado.current = true;
+    vibrar();
+    setSemSom(!tocarAlarme(3));
+  }, [chegouCliente]);
 
   const pg = pedido?.pagamento;
   const cartao = pg?.forma === 'cartao_app';
@@ -222,6 +240,17 @@ export default function Acompanhar() {
                   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Não consegui ativar os avisos.');
                 }}
               />
+            )}
+
+            {chegouCliente && (
+              <div className="aviso" role="alert" style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, background: '#fff3c4', borderColor: '#ffc400' }}>
+                🛵 Seu entregador chegou! Tenha o código de entrega em mãos.
+                <div style={{ marginTop: 8 }}>
+                  <button type="button" className="btn btn-pequeno" onClick={() => { desbloquearAudio(); vibrar(); setSemSom(!tocarAlarme(2)); }}>
+                    🔔 {semSom ? 'Ativar som do alerta' : 'Tocar alerta de novo'}
+                  </button>
+                </div>
+              </div>
             )}
 
             {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && <RastreioEntrega pedido={pedido} />}

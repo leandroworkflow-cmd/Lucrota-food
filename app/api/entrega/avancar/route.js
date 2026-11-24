@@ -11,7 +11,7 @@ import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../l
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// acao: 'cheguei' | 'coletei' | 'entreguei' | 'desistir'
+// acao: 'cheguei' | 'cheguei_cliente' | 'coletei' | 'entreguei' | 'desistir'
 export async function POST(request) {
   const c = await entregadorDaRequisicao(request);
   if (c.resposta) return c.resposta;
@@ -21,7 +21,7 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,foto_coleta,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,lat,lng)')
+    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,chegou_cliente_em,destino_lat,destino_lng,foto_coleta,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,lat,lng)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido) return erro('Pedido não encontrado.', 404);
@@ -41,6 +41,12 @@ export async function POST(request) {
     const cod = conferirCodigo({ esperado: pedido.codigo_entrega, tentativas: pedido.tentativas_codigo, informado: body.codigo });
     if (cod.errado) await admin.from('dl_pedidos').update({ tentativas_codigo: (pedido.tentativas_codigo || 0) + 1 }).eq('id', pedido.id);
     if (cod.erro) return erro(cod.erro, cod.bloqueado ? 423 : 409);
+  }
+
+  if (body.acao === 'cheguei_cliente') {
+    // Confere pelo GPS que está perto do endereço do cliente (raio largo, porque o ponto do endereço é aproximado). Sem GPS, não bloqueia.
+    const gpsC = chegadaValida({ lat: Number(body.lat), lng: Number(body.lng) }, { lat: pedido.destino_lat, lng: pedido.destino_lng }, 800, 'do endereço do cliente');
+    if (gpsC.erro) return erro(gpsC.erro, 409);
   }
 
   if (body.acao === 'cheguei') {
@@ -77,6 +83,10 @@ export async function POST(request) {
     });
     const aviso = avisoDoCliente('chegou_loja', { numero: pedido.numero, entregadorNome: primeiroNome });
     await avisarCliente(admin, pedido.id, { ...aviso, url: `/pedido/${pedido.token}`, tag: `pedido-${pedido.numero}` });
+  }
+  if (body.acao === 'cheguei_cliente') {
+    const aviso = avisoDoCliente('chegou_cliente', { numero: pedido.numero, entregadorNome: primeiroNome });
+    await avisarCliente(admin, pedido.id, { ...aviso, url: `/pedido/${pedido.token}`, tag: `chegada-cliente-${pedido.numero}`, urgente: true });
   }
   if (body.acao === 'desistir') {
     await avisarUsuarios(admin, [pedido.dl_lojas?.dono_id].filter(Boolean), {

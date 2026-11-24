@@ -16,7 +16,7 @@ export async function GET(request) {
   const { data: ativas, error: e1 } = await admin
     .from('dl_pedidos')
     .select(
-      `id,numero,status,loja_id,chegou_loja_em,pronto_em,foto_coleta_em,cliente_nome,cliente_telefone,endereco,bairro,complemento,observacao,forma_pagamento,troco_para,total,taxa_entrega,frete_entregador,destino_lat,destino_lng,dl_lojas(${LOJA})`
+      `id,numero,status,loja_id,chegou_loja_em,chegou_cliente_em,pronto_em,foto_coleta_em,cliente_nome,cliente_telefone,endereco,bairro,complemento,observacao,forma_pagamento,troco_para,total,taxa_entrega,frete_entregador,destino_lat,destino_lng,dl_lojas(${LOJA})`
     )
     .eq('entregador_id', ent.id)
     .in('status', ['aceito', 'preparo', 'saiu'])

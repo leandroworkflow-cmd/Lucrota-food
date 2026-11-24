@@ -18,7 +18,7 @@ export async function GET(_request, { params }) {
   const { data, error } = await admin
     .from('dl_pedidos')
     .select(
-      'id,loja_id,numero,status,itens,subtotal,taxa_entrega,total,divida_cliente,chegou_loja_em,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,pagamento_status,mp_payment_id,pix_copia_cola,pix_qr_base64,pix_expira_em,preparo_em,cancelado_por,taxa_cancelamento,codigo_entrega,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
+      'id,loja_id,numero,status,itens,subtotal,taxa_entrega,total,divida_cliente,chegou_loja_em,forma_pagamento,endereco,criado_em,atualizado_em,entregador_id,entrega,destino_lat,destino_lng,chegou_cliente_em,pagamento_status,mp_payment_id,pix_copia_cola,pix_qr_base64,pix_expira_em,preparo_em,cancelado_por,taxa_cancelamento,codigo_entrega,dl_lojas(nome,whatsapp,tempo_estimado,endereco,lat,lng)'
     )
     .eq('token', token)
     .maybeSingle();

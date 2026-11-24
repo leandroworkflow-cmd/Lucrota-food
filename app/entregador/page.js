@@ -112,7 +112,7 @@ function Cadastro({ aoConcluir }) {
   );
 }
 
-function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, onFoto, ocupado }) {
+function CartaoEntrega({ p, posicao, onAcao, onChegada, onChegadaCliente, onEntregar, onFoto, ocupado }) {
   const [codigo, setCodigo] = useState('');
   const [msgCodigo, setMsgCodigo] = useState('');
   const loja = p.dl_lojas || {};
@@ -183,6 +183,14 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, onFoto, ocup
 
       <div className="opcoes">
         {saiu ? (
+          <>
+          {p.chegou_cliente_em ? (
+            <div className="aviso" role="status" style={{ width: '100%' }}><Icone nome="ok" tam={18} style={{ verticalAlign: '-3px' }} /> O cliente foi avisado (com alerta sonoro) que você chegou. Peça o código de 4 números.</div>
+          ) : (
+            <button type="button" className="btn btn-primario" style={{ width: '100%' }} disabled={ocupado} onClick={() => onChegadaCliente(p.id)}>
+              Cheguei no cliente
+            </button>
+          )}
           <form
             style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}
             onSubmit={async (e) => {
@@ -205,6 +213,7 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, onFoto, ocup
               Confirmar entrega
             </button>
           </form>
+          </>
         ) : (
           <>
             {!p.chegou_loja_em ? (
@@ -302,6 +311,15 @@ function Painel({ dados, recarregar, aoSair }) {
         navigator.geolocation.getCurrentPosition((r) => ok({ lat: r.coords.latitude, lng: r.coords.longitude }), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 });
       });
       await api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: 'cheguei', ...(pos || {}) } });
+    });
+  // "Cheguei no cliente": manda a posição para o servidor e o cliente recebe aviso com alerta sonoro.
+  const chegadaCliente = (id) =>
+    executar(async () => {
+      const pos = await new Promise((ok) => {
+        if (!('geolocation' in navigator)) return ok(null);
+        navigator.geolocation.getCurrentPosition((r) => ok({ lat: r.coords.latitude, lng: r.coords.longitude }), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 });
+      });
+      await api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: 'cheguei_cliente', ...(pos || {}) } });
     });
   const salvarChave = () =>
     executar(async () => {
@@ -712,7 +730,7 @@ function Painel({ dados, recarregar, aoSair }) {
             {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
 
             {ativas.map((p) => (
-              <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} onFoto={foto} ocupado={ocupado} />
+              <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onChegadaCliente={chegadaCliente} onEntregar={entregar} onFoto={foto} ocupado={ocupado} />
             ))}
 
             {ent.online && !semAprovacao && (
