@@ -129,6 +129,26 @@ function CartaoPedido({ p, loja, onStatus, onChamar, onPronto, ocupado }) {
           )}
         </div>
       )}
+      {p.foto_coleta_em && (
+        <div>
+          <button
+            type="button"
+            className="btn btn-pequeno"
+            onClick={async () => {
+              const w = window.open('', '_blank');
+              try {
+                const r = await api(`/api/loja/foto-coleta?pedido_id=${p.id}`);
+                if (w) { w.opener = null; w.location.href = r.url; }
+              } catch (e) {
+                w?.close();
+                window.alert(e.message);
+              }
+            }}
+          >
+            📷 Ver foto da coleta
+          </button>
+        </div>
+      )}
       <div>
         <BotaoAjuda papel="lojista" numero={p.numero} loja={loja?.nome} />
       </div>
@@ -194,7 +214,7 @@ export default function Pedidos() {
     const desde = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
     const { data, error } = await supabase
       .from('dl_pedidos')
-      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,pronto_em,entregador_nome,entregador_veiculo,cancelado_por,taxa_cancelamento')
+      .select('id,numero,token,cliente_nome,cliente_telefone,endereco,bairro,complemento,forma_pagamento,troco_para,observacao,itens,subtotal,taxa_entrega,total,status,criado_em,atualizado_em,entregador_id,entrega,pagamento_status,chegou_loja_em,pronto_em,entregador_nome,entregador_veiculo,cancelado_por,taxa_cancelamento,foto_coleta_em')
       .eq('loja_id', loja.id)
       .or('pagamento_status.is.null,pagamento_status.in.(pago,reembolsado,reembolsado_parcial)')
       .gte('criado_em', desde)

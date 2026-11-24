@@ -31,7 +31,8 @@ export async function POST(request) {
   if (t.erro) return erro(t.erro, 409);
 
   if (body.status === 'entregue') {
-    // Loja que entrega sozinha também confirma com o código do cliente.
+    // Loja que entrega sozinha também confirma com o código do cliente. Sem código gravado, não conclui.
+    if (!pedido.codigo_entrega) return erro('Este pedido está sem código de entrega. Fale com a central de ajuda.', 409);
     const cod = conferirCodigo({ esperado: pedido.codigo_entrega, tentativas: pedido.tentativas_codigo, informado: body.codigo });
     if (cod.errado) await admin.from('dl_pedidos').update({ tentativas_codigo: (pedido.tentativas_codigo || 0) + 1 }).eq('id', pedido.id);
     if (cod.erro) return erro(cod.erro, cod.bloqueado ? 423 : 409);

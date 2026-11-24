@@ -11,7 +11,8 @@ import { Icone } from '../../components/Icones';
 import SaqueSaldo from '../../components/SaqueSaldo';
 import ExcluirConta from '../../components/ExcluirConta';
 import BotaoApple from '../../components/BotaoApple';
-import { api } from '../../lib/api-cliente';
+import { api, apiEnviar } from '../../lib/api-cliente';
+import { prepararDocumento } from '../../lib/imagem';
 import { entrarComGoogle, sair, useSession } from '../../lib/auth';
 import { corridasPorDistancia, VEICULOS } from '../../lib/entrega';
 import { SEGUNDOS_OFERTA } from '../../lib/ofertas';
@@ -111,7 +112,7 @@ function Cadastro({ aoConcluir }) {
   );
 }
 
-function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
+function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, onFoto, ocupado }) {
   const [codigo, setCodigo] = useState('');
   const [msgCodigo, setMsgCodigo] = useState('');
   const loja = p.dl_lojas || {};
@@ -210,10 +211,18 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onEntregar, ocupado }) {
               <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onChegada(p.id)}>
                 Cheguei na loja
               </button>
+            ) : !p.foto_coleta_em ? (
+              <label className="btn btn-primario" style={{ cursor: ocupado ? 'default' : 'pointer', opacity: ocupado ? 0.6 : 1 }}>
+                {ocupado ? 'Enviando foto…' : 'Tirar foto do pedido'}
+                <input type="file" accept="image/*" capture="environment" hidden disabled={ocupado} onChange={(e) => { const a = e.target.files?.[0]; e.target.value = ''; if (a) onFoto(p.id, a); }} />
+              </label>
             ) : (
-              <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onAcao(p.id, 'coletei')}>
-                Peguei o pedido
-              </button>
+              <>
+                <div className="aviso" role="status"><Icone nome="ok" tam={18} style={{ verticalAlign: '-3px' }} /> Foto do pedido enviada.</div>
+                <button type="button" className="btn btn-primario" disabled={ocupado} onClick={() => onAcao(p.id, 'coletei')}>
+                  Peguei o pedido
+                </button>
+              </>
             )}
             <button type="button" className="btn btn-pequeno" disabled={ocupado} onClick={() => window.confirm('Devolver essa corrida para outros entregadores?') && onAcao(p.id, 'desistir')}>
               Desistir
@@ -275,6 +284,15 @@ function Painel({ dados, recarregar, aoSair }) {
       setOcupado(false);
     }
   };
+  // Foto do pedido na coleta: reduz no aparelho e envia. Sem ela, "Peguei o pedido" não libera.
+  const foto = (id, arquivo) =>
+    executar(async () => {
+      const blob = await prepararDocumento(arquivo);
+      const f = new FormData();
+      f.append('pedido_id', id);
+      f.append('arquivo', blob, 'coleta.jpg');
+      await apiEnviar('/api/entrega/coleta', f);
+    });
   const aceitar = (id) => executar(() => api('/api/entrega/aceitar', { metodo: 'POST', corpo: { pedido_id: id } }));
   // "Cheguei na loja": manda a posição para o servidor conferir que você está perto (se o GPS permitir).
   const chegada = (id) =>
@@ -694,7 +712,7 @@ function Painel({ dados, recarregar, aoSair }) {
             {erro && <div className="aviso aviso-erro" role="alert">{erro}</div>}
 
             {ativas.map((p) => (
-              <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} ocupado={ocupado} />
+              <CartaoEntrega key={p.id} p={p} posicao={posicao} onAcao={acao} onChegada={chegada} onEntregar={entregar} onFoto={foto} ocupado={ocupado} />
             ))}
 
             {ent.online && !semAprovacao && (

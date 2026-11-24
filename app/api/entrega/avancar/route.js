@@ -2,7 +2,8 @@ import { registrarOferta } from '../../../../lib/ofertas-servidor';
 import { avisoDoCliente, avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarCliente, avisarUsuarios } from '../../../../lib/avisos-servidor';
 import { avisarCorridaDisponivel } from '../../../../lib/corrida-servidor';
-import { conferirCodigo } from '../../../../lib/codigo';
+import { randomInt } from 'node:crypto';
+import { conferirCodigo, gerarCodigo } from '../../../../lib/codigo';
 import { chegadaValida, passoDaEntrega } from '../../../../lib/entrega';
 import { registrarLancamentos } from '../../../../lib/pagamento-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
@@ -20,7 +21,7 @@ export async function POST(request) {
 
   const { data: pedido } = await admin
     .from('dl_pedidos')
-    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,lat,lng)')
+    .select('id,numero,token,status,entregador_id,entrega,chegou_loja_em,foto_coleta,codigo_entrega,tentativas_codigo,dl_lojas(dono_id,nome,lat,lng)')
     .eq('id', body.pedido_id)
     .maybeSingle();
   if (!pedido) return erro('Pedido não encontrado.', 404);
@@ -28,8 +29,15 @@ export async function POST(request) {
   const passo = passoDaEntrega(ent, pedido, body.acao);
   if (passo.erro) return erro(passo.erro, 409);
 
+  if (body.acao === 'coletei') {
+    // A coleta só vale com a foto do pedido tirada na loja. Pedido sem código ganha um agora (o cliente o vê no acompanhamento).
+    if (!pedido.foto_coleta) return erro('Tire a foto do pedido antes de confirmar a coleta.', 409);
+    if (!pedido.codigo_entrega) Object.assign(passo.dados, { codigo_entrega: gerarCodigo(randomInt(0, 10000)), tentativas_codigo: 0 });
+  }
+
   if (body.acao === 'entreguei') {
-    // A entrega só conclui com o código que o cliente informa ao entregador.
+    // A entrega só conclui com o código que o cliente informa ao entregador. Sem código gravado, não conclui.
+    if (!pedido.codigo_entrega) return erro('Este pedido está sem código de entrega. Fale com a central de ajuda.', 409);
     const cod = conferirCodigo({ esperado: pedido.codigo_entrega, tentativas: pedido.tentativas_codigo, informado: body.codigo });
     if (cod.errado) await admin.from('dl_pedidos').update({ tentativas_codigo: (pedido.tentativas_codigo || 0) + 1 }).eq('id', pedido.id);
     if (cod.erro) return erro(cod.erro, cod.bloqueado ? 423 : 409);
