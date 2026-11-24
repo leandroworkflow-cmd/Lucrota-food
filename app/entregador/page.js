@@ -587,6 +587,7 @@ function Painel({ dados, recarregar, aoSair }) {
               {!ent.exclusivo && <div className="ent-linha"><span className="muted">Documentos</span><strong>{docs === 'aprovado' ? 'Aprovados' : docs === 'em_analise' ? 'Em análise' : docs === 'reprovado' ? 'Recusados' : 'Não enviados'}</strong></div>}
               <small>Para mudar nome, telefone ou veículo, fale com o suporte.</small>
               <a className="btn" href={linkSuporte({ papel: 'entregador' })} target="_blank" rel="noopener noreferrer"><Icone nome="suporte" tam={18} /> Falar com o suporte</a>
+              <button type="button" className="btn" onClick={aoSair}><Icone nome="sair" tam={18} /> Sair da conta</button>
             </div>
           )}
           {tela === 'config' && (
@@ -602,6 +603,7 @@ function Painel({ dados, recarregar, aoSair }) {
                 <small>Sua localização só é enviada ao cliente e à loja enquanto você está com um pedido na mão. Fora disso ela fica só no seu aparelho.</small>
                 <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a>
               </div>
+              <button type="button" className="btn" onClick={aoSair}><Icone nome="sair" tam={18} /> Sair da conta</button>
               <ExcluirConta />
             </>
           )}
