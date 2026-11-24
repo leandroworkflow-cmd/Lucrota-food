@@ -102,8 +102,18 @@ export default function ContaCliente({ chaveMP }) {
   }
 
   const campo = (n) => (e) => setPerfil((p) => ({ ...p, [n]: e.target.value }));
+  const emailLogado = auth.session?.user?.email || perfil?.email || '';
   return (
     <>
+      <div className="bloco" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <small className="muted" style={{ display: 'block' }}>Conectado como</small>
+          <strong style={{ overflowWrap: 'anywhere' }}>{emailLogado || 'sua conta'}</strong>
+        </div>
+        <button type="button" className="btn btn-pequeno" onClick={sair}>
+          Sair / trocar de conta
+        </button>
+      </div>
       {erro && (
         <div className="aviso aviso-erro" role="alert">
           {erro}
