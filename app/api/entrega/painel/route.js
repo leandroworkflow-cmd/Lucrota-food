@@ -1,4 +1,4 @@
-import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
+import { entregadorPodeVer, desdeCorridaAtual, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
 import { indicadores, pendenciasDoEntregador } from '../../../../lib/ofertas';
 import { entregadorDaRequisicao, erro } from '../../../../lib/entrega-servidor';
 
@@ -20,7 +20,9 @@ export async function GET(request) {
     )
     .eq('entregador_id', ent.id)
     .in('status', ['aceito', 'preparo', 'saiu'])
-    .order('criado_em');
+    .gte('criado_em', desdeCorridaAtual())
+    .order('criado_em')
+    .limit(MAX_ENTREGAS_ATIVAS);
   if (e1) return erro('Não consegui consultar agora.', 502);
 
   let disponiveis = [];

@@ -1,6 +1,6 @@
 import { avisoParaLoja } from '../../../../lib/avisos-texto';
 import { avisarUsuarios } from '../../../../lib/avisos-servidor';
-import { entregadorPodeVer, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
+import { entregadorPodeVer, desdeCorridaAtual, MAX_ENTREGAS_ATIVAS } from '../../../../lib/entrega';
 import { registrarOferta } from '../../../../lib/ofertas-servidor';
 import { entregadorDaRequisicao, erro, lerJson, uuidValido } from '../../../../lib/entrega-servidor';
 
@@ -18,8 +18,9 @@ export async function POST(request) {
     .from('dl_pedidos')
     .select('id', { count: 'exact', head: true })
     .eq('entregador_id', ent.id)
-    .in('status', ['aceito', 'preparo', 'saiu']);
-  if ((count || 0) >= MAX_ENTREGAS_ATIVAS) return erro(`Termine uma entrega antes de aceitar outra (limite: ${MAX_ENTREGAS_ATIVAS}).`, 409);
+    .in('status', ['aceito', 'preparo', 'saiu'])
+    .gte('criado_em', desdeCorridaAtual());
+  if ((count || 0) >= MAX_ENTREGAS_ATIVAS) return erro('Termine a corrida atual antes de aceitar outra.', 409);
 
   const { data: pedido } = await admin
     .from('dl_pedidos')

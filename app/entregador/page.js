@@ -19,7 +19,8 @@ import { SEGUNDOS_OFERTA } from '../../lib/ofertas';
 import { brl } from '../../lib/format';
 import { FORMAS } from '../../lib/pedido';
 import { linkSuporte } from '../../lib/suporte';
-import { linkGoogleMaps, linkWaze, textoDistancia, textoTempo } from '../../lib/geo';
+import { coordValida, distanciaM, linkGoogleMaps, linkWaze, textoDistancia, textoTempo } from '../../lib/geo';
+import { desbloquearAudio, tocarAlarme, vibrar } from '../../lib/alarme';
 import { supabase } from '../../lib/supabase';
 
 function Cadastro({ aoConcluir }) {
@@ -264,6 +265,9 @@ function Painel({ dados, recarregar, aoSair }) {
   const [semGps, setSemGps] = useState(false);
 
   const levando = ativas.some((p) => p.status === 'saiu');
+  const rastrear = ativas.length > 0; // GPS ligado em toda a corrida (para detectar a chegada); só é enviado ao cliente/loja com o pedido na mão
+  const levandoRef = useRef(false);
+  levandoRef.current = levando;
 
   async function executar(fn) {
     setOcupado(true);
@@ -361,7 +365,7 @@ function Painel({ dados, recarregar, aoSair }) {
 
   // GPS: só compartilha a localização enquanto você está com um pedido na mão.
   useEffect(() => {
-    if (!levando) {
+    if (!rastrear) {
       setPosicao(null);
       return undefined;
     }
@@ -383,6 +387,7 @@ function Painel({ dados, recarregar, aoSair }) {
         setGpsErro('');
         const ponto = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosicao(ponto);
+        if (!levandoRef.current) return;
         const agora = Date.now();
         if (agora - ultimoEnvio.current < 5000) return;
         ultimoEnvio.current = agora;
@@ -401,7 +406,41 @@ function Painel({ dados, recarregar, aoSair }) {
       document.removeEventListener('visibilitychange', religar);
       travado?.release?.().catch(() => {});
     };
-  }, [levando, ent.id]);
+  }, [rastrear, ent.id]);
+
+  // ---- Chegada ao local (como nos apps de corrida): perto da loja/cliente aparece o botão "Cheguei" com som e vibração ----
+  const atual = ativas[0] || null;
+  const fase = atual ? (atual.status === 'saiu' ? 'cliente' : 'loja') : null;
+  const alvoAtual = atual ? (fase === 'cliente' ? { lat: atual.destino_lat, lng: atual.destino_lng } : { lat: atual.dl_lojas?.lat, lng: atual.dl_lojas?.lng }) : null;
+  const jaAvisou = atual ? (fase === 'cliente' ? Boolean(atual.chegou_cliente_em) : Boolean(atual.chegou_loja_em)) : true;
+  const pontoAtual = posicao || minhaPos;
+  const distAlvo = pontoAtual && alvoAtual && coordValida(alvoAtual.lat, alvoAtual.lng) ? distanciaM(pontoAtual, alvoAtual) : null;
+  const perto = Boolean(atual) && !jaAvisou && distAlvo != null && distAlvo <= 200;
+  const avisouPerto = useRef('');
+  useEffect(() => {
+    if (!perto) return;
+    const chave = `${atual.id}:${fase}`;
+    if (avisouPerto.current === chave) return;
+    avisouPerto.current = chave;
+    vibrar();
+    tocarAlarme(1);
+  }, [perto, atual?.id, fase]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const liberar = () => desbloquearAudio();
+    window.addEventListener('pointerdown', liberar, { once: true });
+    return () => window.removeEventListener('pointerdown', liberar);
+  }, []);
+  // Ao voltar do Waze/Maps: atualiza a corrida e a posição na hora, para o botão "Cheguei" já aparecer.
+  useEffect(() => {
+    if (!atual) return undefined;
+    const volta = () => {
+      if (document.visibilityState !== 'visible') return;
+      recarregar().catch(() => {});
+      navigator.geolocation?.getCurrentPosition((r) => setMinhaPos({ lat: r.coords.latitude, lng: r.coords.longitude }), () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+    };
+    document.addEventListener('visibilitychange', volta);
+    return () => document.removeEventListener('visibilitychange', volta);
+  }, [atual?.id, recarregar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Som e vibração da oferta de corrida (o navegador só libera o som depois de um toque) ----
   const liberarSom = useCallback(() => {
@@ -763,6 +802,14 @@ function Painel({ dados, recarregar, aoSair }) {
           </div>
         )}
 
+        {perto && (
+          <div className="ent-chegou" role="alert">
+            <strong>📍 {fase === 'cliente' ? 'Você chegou no cliente' : `Você chegou na loja ${atual.dl_lojas?.nome || ''}`}</strong>
+            <button type="button" className="ent-pilula" disabled={ocupado} onClick={() => (fase === 'cliente' ? chegadaCliente(atual.id) : chegada(atual.id))}>
+              {fase === 'cliente' ? 'Cheguei no cliente' : 'Cheguei na loja'}
+            </button>
+          </div>
+        )}
         <div className="ent-barra">
           <button type="button" className="ent-redondo ent-redondo-g" aria-label="Configurações" onClick={() => setTela('config')}><Icone nome="ajustes" /></button>
           {precisaDocs ? (
