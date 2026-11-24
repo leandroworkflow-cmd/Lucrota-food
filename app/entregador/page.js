@@ -22,7 +22,7 @@ import { linkGoogleMaps, linkWaze, textoDistancia, textoTempo } from '../../lib/
 import { supabase } from '../../lib/supabase';
 
 function Cadastro({ aoConcluir }) {
-  const [f, setF] = useState({ nome: '', telefone: '', veiculo: 'moto', codigo: '', endereco: '', cnh_nome: '', cnh_validade: '', cnh_categoria: 'A', placa: '' });
+  const [f, setF] = useState({ nome: '', telefone: '', veiculo: 'moto', cpf: '', endereco: '', cnh_nome: '', cnh_validade: '', cnh_categoria: 'A', placa: '' });
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const campo = (n) => (e) => setF((x) => ({ ...x, [n]: e.target.value }));
@@ -63,46 +63,42 @@ function Cadastro({ aoConcluir }) {
           </select>
         </div>
       </div>
-      {!f.codigo && (
+      <div className="campo">
+        <label htmlFor="e-cpf">CPF</label>
+        <input id="e-cpf" className="input" required inputMode="numeric" maxLength={14} placeholder="000.000.000-00" value={f.cpf} onChange={campo('cpf')} />
+      </div>
+      <div className="campo">
+        <label htmlFor="e-end">Endereço onde você mora</label>
+        <input id="e-end" className="input" required maxLength={200} placeholder="Rua, número, bairro e cidade" value={f.endereco} onChange={campo('endereco')} />
+      </div>
+      {(f.veiculo === 'moto' || f.veiculo === 'carro') && (
         <>
           <div className="campo">
-            <label htmlFor="e-end">Endereço onde você mora</label>
-            <input id="e-end" className="input" required maxLength={200} placeholder="Rua, número, bairro e cidade" value={f.endereco} onChange={campo('endereco')} />
+            <label htmlFor="e-cnhn">Nome completo, como está na CNH</label>
+            <input id="e-cnhn" className="input" required maxLength={80} value={f.cnh_nome} onChange={campo('cnh_nome')} />
           </div>
-          {(f.veiculo === 'moto' || f.veiculo === 'carro') && (
-            <>
-              <div className="campo">
-                <label htmlFor="e-cnhn">Nome completo, como está na CNH</label>
-                <input id="e-cnhn" className="input" required maxLength={80} value={f.cnh_nome} onChange={campo('cnh_nome')} />
-              </div>
-              <div className="linha-campos">
-                <div className="campo">
-                  <label htmlFor="e-cnhv">Validade da CNH</label>
-                  <input id="e-cnhv" className="input" required type="date" value={f.cnh_validade} onChange={campo('cnh_validade')} />
-                </div>
-                <div className="campo">
-                  <label htmlFor="e-cnhc">Categoria da CNH</label>
-                  <select id="e-cnhc" className="input" value={f.cnh_categoria} onChange={campo('cnh_categoria')}>
-                    {['A', 'AB', 'B', 'AC', 'AD', 'AE', 'C', 'D', 'E'].map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="campo">
-                <label htmlFor="e-placa">Placa do veículo</label>
-                <input id="e-placa" className="input" required maxLength={8} placeholder="ABC1D23" value={f.placa} onChange={(e) => setF((x) => ({ ...x, placa: e.target.value.toUpperCase() }))} />
-              </div>
-            </>
-          )}
+          <div className="linha-campos">
+            <div className="campo">
+              <label htmlFor="e-cnhv">Validade da CNH</label>
+              <input id="e-cnhv" className="input" required type="date" value={f.cnh_validade} onChange={campo('cnh_validade')} />
+            </div>
+            <div className="campo">
+              <label htmlFor="e-cnhc">Categoria da CNH</label>
+              <select id="e-cnhc" className="input" value={f.cnh_categoria} onChange={campo('cnh_categoria')}>
+                {['A', 'AB', 'B', 'AC', 'AD', 'AE', 'C', 'D', 'E'].map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="campo">
+            <label htmlFor="e-placa">Placa do veículo</label>
+            <input id="e-placa" className="input" required maxLength={8} placeholder="ABC1D23" value={f.placa} onChange={(e) => setF((x) => ({ ...x, placa: e.target.value.toUpperCase() }))} />
+          </div>
         </>
       )}
-      <div className="campo">
-        <label htmlFor="e-cod">Código da loja (opcional)</label>
-        <input id="e-cod" className="input" maxLength={6} placeholder="Ex.: A1B2C3" value={f.codigo} onChange={(e) => setF((x) => ({ ...x, codigo: e.target.value.toUpperCase() }))} />
-        <small>
-          Se uma loja te convidou, digite o código dela: você faz só as entregas dessa loja e já entra liberado. Sem código, você entra na plataforma e
-          começa a receber corridas depois de enviar as fotos da CNH, do documento da moto e uma selfie e a gente aprovar.
-        </small>
-      </div>
+      <small>
+        Depois do cadastro você envia a foto (ou PDF) da CNH e do documento do veículo, o comprovante de residência e uma selfie para reconhecimento facial.
+        Você só começa a receber corridas depois que a nossa equipe aprovar.
+      </small>
       {erro && (
         <div className="aviso aviso-erro" role="alert">
           {erro}
@@ -580,7 +576,9 @@ function Painel({ dados, recarregar, aoSair }) {
               </div>
             </>
           )}
-          {tela === 'documentos' && <Documentos veiculo={ent.veiculo} aoMudar={recarregar} />}
+          {tela === 'documentos' && (
+            <Documentos veiculo={ent.veiculo} aoMudar={recarregar} />
+          )}
           {tela === 'perfil' && (
             <div className="ent-bloco">
               <div className="ent-linha"><span className="muted">Nome</span><strong>{ent.nome}</strong></div>

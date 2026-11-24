@@ -28,7 +28,7 @@ export async function GET(request) {
   }
   const { data: ent } = await admin
     .from('dl_entregadores')
-    .select('nome,veiculo,telefone,endereco,docs_status,docs_motivo,cnh_nome,cnh_validade,cnh_categoria,placa,docs_enviados_em,docs_analise')
+    .select('nome,cpf,veiculo,telefone,endereco,docs_status,docs_motivo,cnh_nome,cnh_validade,cnh_categoria,placa,docs_enviados_em,docs_analise')
     .eq('id', id)
     .maybeSingle();
   return Response.json({ links, pdfs, selfiesDia, entregador: ent }, { headers: { 'Cache-Control': 'no-store' } });

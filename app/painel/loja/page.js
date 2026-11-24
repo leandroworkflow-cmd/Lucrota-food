@@ -160,9 +160,6 @@ export default function MinhaLoja() {
   }
 
   const taxa = f.taxa_entrega.trim() ? parseValor(f.taxa_entrega) : 0;
-  const mensagemConvite = loja
-    ? `Quer fazer entregas para a ${loja.nome}? Entre em ${SITE.url}/entregador e use o código ${loja.codigo_entregador}.`
-    : '';
 
   return (
     <>
@@ -334,18 +331,6 @@ export default function MinhaLoja() {
               </small>
             </span>
           </label>
-          {!nova && (
-            <div className="entrega-info" style={{ marginTop: 10 }}>
-              <span>
-                Código dos seus entregadores: <strong>{loja.codigo_entregador || '(rode o SQL 04)'}</strong>
-              </span>
-              {loja.codigo_entregador && (
-                <a href={`https://wa.me/?text=${encodeURIComponent(mensagemConvite)}`} target="_blank" rel="noopener noreferrer">
-                  Convidar pelo WhatsApp
-                </a>
-              )}
-            </div>
-          )}
         </fieldset>
 
         <fieldset className="campo" style={{ border: 0, padding: 0, margin: 0 }}>

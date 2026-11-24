@@ -33,7 +33,6 @@ export async function GET(request) {
       .in('status', ['aceito', 'preparo'])
       .order('criado_em')
       .limit(30);
-    if (ent.loja_id) q = q.eq('loja_id', ent.loja_id);
     const { data, error: e2 } = await q;
     if (e2) return erro('Não consegui consultar agora.', 502);
     const { data: recus } = await admin.from('dl_ofertas').select('pedido_id').eq('entregador_id', ent.id).eq('resposta', 'recusada');
@@ -58,7 +57,7 @@ export async function GET(request) {
 
   const { data: ofs } = await admin.from('dl_ofertas').select('resposta').eq('entregador_id', ent.id).order('atualizado_em', { ascending: false }).limit(100);
   const ind = indicadores(ofs || []);
-  const pendencias = pendenciasDoEntregador({ ent: { exclusivo: Boolean(ent.loja_id), docs_status: ent.docs_status }, conta });
+  const pendencias = pendenciasDoEntregador({ ent: { exclusivo: false, docs_status: ent.docs_status }, conta });
 
   let lojaNome = null;
   if (ent.loja_id) {
@@ -72,7 +71,7 @@ export async function GET(request) {
         nome: ent.nome,
         veiculo: ent.veiculo,
         online: ent.online,
-        exclusivo: Boolean(ent.loja_id),
+        exclusivo: false,
         loja_nome: lojaNome,
         aprovado: ent.aprovado,
         docs_status: ent.docs_status,

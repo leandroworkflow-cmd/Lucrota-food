@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, apiEnviar } from '../../lib/api-cliente';
-import { ROTULO_DOC } from '../../lib/documentos';
+import { ROTULO_DOC, TIPOS_COM_PDF } from '../../lib/documentos';
 import { prepararDocumento } from '../../lib/imagem';
 import { Icone } from '../../components/Icones';
 
 const CATEGORIAS = ['A', 'AB', 'B', 'AC', 'AD', 'AE', 'C', 'D', 'E'];
 const AJUDA = {
   cnh: 'Envie uma foto da frente da CNH aberta, sem reflexo, ou o PDF da CNH Digital (até 3 MB). Todo o texto precisa estar legível.',
-  crlv: 'Foto do documento do veículo (CRLV) com a placa e o nome do proprietário legíveis.',
-  selfie: 'Tire agora uma selfie de frente, com o rosto inteiro, sem óculos escuros nem boné e com boa luz. Ela não pode ser uma foto da galeria.',
+  crlv: 'Foto ou PDF do documento do veículo (CRLV) com a placa e o nome do proprietário legíveis (até 3 MB).',
+  selfie: 'Selfie de reconhecimento facial: tire agora, de frente, com o rosto inteiro, sem óculos escuros nem boné e com boa luz. Ela é comparada com a foto da CNH e não pode ser uma foto da galeria.',
+  comprovante: 'Conta de luz, água, internet ou telefone, contrato de aluguel ou outro comprovante recente do endereço onde você mora. Foto ou PDF (até 3 MB), com o endereço e o nome legíveis.',
 };
 
 // Selfie ao vivo: abre a câmera frontal e só aceita foto tirada na hora (nada de galeria).
@@ -73,8 +74,8 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
     setOcupado(true);
     setMsg('');
     try {
-      const ePdf = tipo === 'cnh' && blobOuArquivo.type === 'application/pdf';
-      if (ePdf && blobOuArquivo.size > 3 * 1024 * 1024) throw new Error('O PDF passou de 3 MB. Envie uma foto da CNH ou um PDF menor.');
+      const ePdf = TIPOS_COM_PDF.includes(tipo) && blobOuArquivo.type === 'application/pdf';
+      if (ePdf && blobOuArquivo.size > 3 * 1024 * 1024) throw new Error('O PDF passou de 3 MB. Envie uma foto ou um PDF menor.');
       const blob = ePdf || (blobOuArquivo.type === 'image/jpeg' && tipo === 'selfie') ? blobOuArquivo : await prepararDocumento(blobOuArquivo);
       const f = new FormData();
       f.append('tipo', tipo);
@@ -106,8 +107,8 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
               </button>
             ) : (
               <label className="btn btn-pequeno" style={{ cursor: 'pointer' }}>
-                {ocupado ? 'Enviando…' : enviado ? (tipo === 'cnh' ? 'Trocar arquivo' : 'Trocar foto') : tipo === 'cnh' ? 'Foto ou PDF da CNH' : 'Tirar ou escolher foto'}
-                <input type="file" accept={tipo === 'cnh' ? 'image/*,application/pdf' : 'image/*'} {...(tipo === 'cnh' ? {} : { capture: 'environment' })} hidden disabled={ocupado} onChange={(e) => e.target.files?.[0] && enviar(e.target.files[0])} />
+                {ocupado ? 'Enviando…' : enviado ? 'Trocar arquivo' : 'Foto ou PDF'}
+                <input type="file" accept="image/*,application/pdf" hidden disabled={ocupado} onChange={(e) => e.target.files?.[0] && enviar(e.target.files[0])} />
               </label>
             )}
           </div>
@@ -121,7 +122,7 @@ function EtapaFoto({ tipo, enviado, bloqueado, aoEnviar }) {
 export default function Documentos({ veiculo, aoMudar }) {
   const [s, setS] = useState(null);
   const [erro, setErro] = useState('');
-  const [f, setF] = useState({ cnh_nome: '', cnh_validade: '', cnh_categoria: veiculo === 'carro' ? 'B' : 'A', placa: '' });
+  const [f, setF] = useState({ cpf: '', endereco: '', cnh_nome: '', cnh_validade: '', cnh_categoria: veiculo === 'carro' ? 'B' : 'A', placa: '' });
   const [aceite, setAceite] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
@@ -129,7 +130,7 @@ export default function Documentos({ veiculo, aoMudar }) {
     try {
       const r = await api('/api/entrega/documentos');
       setS(r);
-      if (r.dados?.cnh_nome) setF((x) => ({ ...x, ...Object.fromEntries(Object.entries(r.dados).filter(([, v]) => v)) }));
+      setF((x) => ({ ...x, ...Object.fromEntries(Object.entries(r.dados || {}).filter(([, v]) => v)) }));
     } catch (e) {
       setErro(e.message);
     }
@@ -138,7 +139,6 @@ export default function Documentos({ veiculo, aoMudar }) {
 
   if (erro) return <div className="aviso aviso-erro">{erro}</div>;
   if (!s) return <p>Carregando…</p>;
-  if (!s.obrigatorio) return <div className="ent-bloco">Você é entregador de uma loja e não precisa enviar documentos.</div>;
 
   const motorizado = s.exigidos.includes('cnh');
   const completo = s.exigidos.every((t) => s.enviados.includes(t));
@@ -168,7 +168,7 @@ export default function Documentos({ veiculo, aoMudar }) {
           Documentos recusados{s.motivo ? `: ${s.motivo}` : '.'} Corrija e envie de novo.
         </div>
       )}
-      {s.status === 'sem_documentos' && <p style={{ margin: 0 }}>Para receber corridas pela plataforma, enviamos seus documentos para conferência. Só a nossa equipe vê essas fotos.</p>}
+      {s.status === 'sem_documentos' && <p style={{ margin: 0 }}>Para receber corridas, envie os documentos abaixo para conferência. Só a nossa equipe vê essas fotos.</p>}
 
       {s.exigidos.map((t) => (
         <EtapaFoto key={t} tipo={t} enviado={s.enviados.includes(t)} bloqueado={travado} aoEnviar={carregar} />
@@ -176,6 +176,14 @@ export default function Documentos({ veiculo, aoMudar }) {
 
       {!travado && (
         <form onSubmit={concluir} style={{ display: 'grid', gap: 10 }}>
+          <div className="campo">
+            <label htmlFor="d-cpf">CPF</label>
+            <input id="d-cpf" className="input" required inputMode="numeric" maxLength={14} placeholder="000.000.000-00" value={f.cpf || ''} onChange={campo('cpf')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="d-end">Endereço onde você mora (o mesmo do comprovante)</label>
+            <input id="d-end" className="input" required maxLength={200} placeholder="Rua, número, bairro e cidade" value={f.endereco || ''} onChange={campo('endereco')} />
+          </div>
           {motorizado && (
             <>
               <div className="campo">

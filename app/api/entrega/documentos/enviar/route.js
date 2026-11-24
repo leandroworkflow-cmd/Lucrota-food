@@ -1,7 +1,7 @@
 import { erro, entregadorDaRequisicao, lerJson } from '../../../../../lib/entrega-servidor';
 import { avisarAdmins } from '../../../../../lib/admin-servidor';
 import { avisarUsuarios } from '../../../../../lib/avisos-servidor';
-import { docsFaltando, validarDadosDocs, avaliarRegras, precisaDeDocumentos, ROTULO_DOC } from '../../../../../lib/documentos';
+import { docsFaltando, validarDadosDocs, validarEndereco, avaliarRegras, ROTULO_DOC } from '../../../../../lib/documentos';
 import { conferirComIA } from '../../../../../lib/ia-documentos';
 
 export const runtime = 'nodejs';
@@ -13,12 +13,15 @@ export async function POST(request) {
   const c = await entregadorDaRequisicao(request);
   if (c.resposta) return c.resposta;
   const { admin, ent } = c;
-  if (!precisaDeDocumentos(ent)) return erro('Entregadores de loja não precisam enviar documentos.', 400);
   if (ent.docs_status === 'aprovado') return erro('Seus documentos já foram aprovados.', 409);
   if (ent.docs_status === 'em_analise') return erro('Seus documentos já estão em análise.', 409);
 
-  const v = validarDadosDocs(await lerJson(request), ent.veiculo);
+  const body = await lerJson(request);
+  const v = validarDadosDocs(body, ent.veiculo);
   if (v.erro) return erro(v.erro, 400);
+  const end = validarEndereco(body.endereco);
+  if (end.erro) return erro(end.erro, 400);
+  v.dados.endereco = end.endereco;
 
   const { data: docs } = await admin.from('dl_documentos').select('tipo,caminho').eq('entregador_id', ent.id);
   const falta = docsFaltando(ent.veiculo, (docs || []).map((d) => d.tipo));
@@ -49,6 +52,6 @@ export async function POST(request) {
     })
     .eq('id', ent.id);
   if (e) return erro('Não consegui concluir o envio. Tente de novo.', 502);
-  await avisarAdmins(admin, { titulo: 'Documentos para analisar', corpo: `${ent.nome} enviou CNH, documento do veículo e selfie.` });
+  await avisarAdmins(admin, { titulo: 'Documentos para analisar', corpo: `${ent.nome} enviou os documentos (CPF, comprovante de residência e selfie) para análise.` });
   return Response.json({ ok: true });
 }

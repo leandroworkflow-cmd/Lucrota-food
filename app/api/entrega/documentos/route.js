@@ -1,5 +1,5 @@
 import { erro, entregadorDaRequisicao } from '../../../../lib/entrega-servidor';
-import { TIPOS_DOC, MAX_BYTES_DOC, ehJpeg, ehPdf, precisaDeDocumentos, tiposExigidos } from '../../../../lib/documentos';
+import { TIPOS_DOC, TIPOS_COM_PDF, MAX_BYTES_DOC, ehJpeg, ehPdf, precisaDeDocumentos, tiposExigidos } from '../../../../lib/documentos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export async function GET(request) {
       status: ent.docs_status,
       motivo: ent.docs_status === 'reprovado' ? ent.docs_motivo : null,
       obrigatorio: precisaDeDocumentos(ent),
-      dados: { cnh_nome: ent.cnh_nome, cnh_validade: ent.cnh_validade, cnh_categoria: ent.cnh_categoria, placa: ent.placa, endereco: ent.endereco },
+      dados: { cpf: ent.cpf, cnh_nome: ent.cnh_nome, cnh_validade: ent.cnh_validade, cnh_categoria: ent.cnh_categoria, placa: ent.placa, endereco: ent.endereco },
     },
     { headers: { 'Cache-Control': 'no-store' } }
   );
@@ -28,7 +28,6 @@ export async function POST(request) {
   const c = await entregadorDaRequisicao(request);
   if (c.resposta) return c.resposta;
   const { admin, ent } = c;
-  if (!precisaDeDocumentos(ent)) return erro('Entregadores de loja não precisam enviar documentos.', 400);
   if (ent.docs_status === 'aprovado') return erro('Seus documentos já foram aprovados.', 409);
   if (ent.docs_status === 'em_analise') return erro('Seus documentos estão em análise. Aguarde o resultado.', 409);
 
@@ -40,15 +39,15 @@ export async function POST(request) {
   if (!arquivo || typeof arquivo.arrayBuffer !== 'function') return erro('Envie a foto.', 400);
   if (arquivo.size > MAX_BYTES_DOC) return erro('A foto ficou grande demais. Tire outra.', 413);
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
-  const pdf = tipo === 'cnh' && ehPdf(bytes);
-  if (!pdf && !ehJpeg(bytes)) return erro(tipo === 'cnh' ? 'Envie uma foto ou o PDF da CNH.' : 'Envie uma foto (JPEG).', 400);
+  const pdf = TIPOS_COM_PDF.includes(tipo) && ehPdf(bytes);
+  if (!pdf && !ehJpeg(bytes)) return erro(TIPOS_COM_PDF.includes(tipo) ? 'Envie uma foto ou um PDF.' : 'Envie uma foto (JPEG).', 400);
 
   const ext = pdf ? 'pdf' : 'jpg';
   const caminho = `${ent.id}/${tipo}.${ext}`;
   const { error: e1 } = await admin.storage.from('dl-documentos').upload(caminho, bytes, { contentType: pdf ? 'application/pdf' : 'image/jpeg', upsert: true });
   if (e1) return erro('Não consegui guardar o arquivo. Tente de novo.', 502);
   // Se trocou de foto para PDF (ou o contrário), apaga o arquivo antigo.
-  if (tipo === 'cnh') await admin.storage.from('dl-documentos').remove([`${ent.id}/cnh.${pdf ? 'jpg' : 'pdf'}`]);
+  if (TIPOS_COM_PDF.includes(tipo)) await admin.storage.from('dl-documentos').remove([`${ent.id}/${tipo}.${pdf ? 'jpg' : 'pdf'}`]);
   const { error: e2 } = await admin.from('dl_documentos').upsert({ entregador_id: ent.id, tipo, caminho, criado_em: new Date().toISOString() }, { onConflict: 'entregador_id,tipo' });
   if (e2) return erro('Não consegui guardar a foto. Tente de novo.', 502);
   return Response.json({ ok: true });

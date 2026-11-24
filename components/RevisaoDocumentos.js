@@ -44,7 +44,7 @@ export default function RevisaoDocumentos({ id, nome, aoDecidir, aoFechar }) {
       {ent && (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            {VEICULO[ent.veiculo]} · {ent.telefone}{ent.endereco && <> · Endereço: {ent.endereco}</>}
+            {VEICULO[ent.veiculo]} · {ent.telefone}{ent.cpf && <> · CPF: <b>{ent.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</b></>}{ent.endereco && <> · Endereço: {ent.endereco}</>}
             {ent.cnh_nome && <> · Nome na CNH: <b>{ent.cnh_nome}</b> · Validade {ent.cnh_validade?.split('-').reverse().join('/')} · Categoria {ent.cnh_categoria} · Placa <b>{ent.placa}</b></>}
           </p>
           {alertas.length > 0 ? (
@@ -56,7 +56,7 @@ export default function RevisaoDocumentos({ id, nome, aoDecidir, aoFechar }) {
             <div className="aviso">A conferência automática não achou problemas. Mesmo assim, confira as fotos.</div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
-            {['selfie', 'cnh', 'crlv'].filter((t) => d.links[t]).map((t) => (
+            {['selfie', 'cnh', 'crlv', 'comprovante'].filter((t) => d.links[t]).map((t) => (
               <figure key={t} style={{ margin: 0 }}>
                 {d.pdfs?.[t] ? (
                   <a className="btn" href={d.links[t]} target="_blank" rel="noreferrer">Abrir o PDF da {ROTULO_DOC[t]}</a>
@@ -88,7 +88,7 @@ export default function RevisaoDocumentos({ id, nome, aoDecidir, aoFechar }) {
             </div>
           )}
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Confira: o rosto da selfie é o mesmo da foto da CNH; o nome e a validade batem com o digitado; a placa do documento da moto é a digitada. Os links das fotos expiram em 5 minutos.
+            Confira: o rosto da selfie é o mesmo da foto da CNH; o nome e a validade batem com o digitado; a placa do documento do veículo é a digitada; o comprovante de residência está no nome do entregador (ou de um familiar) e bate com o endereço digitado. Os links das fotos expiram em 5 minutos.
           </p>
           {aguardando ? (
             <>

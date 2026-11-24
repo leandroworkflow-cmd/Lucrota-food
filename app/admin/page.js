@@ -402,7 +402,7 @@ export default function Admin() {
             {aba === 'entregadores' && (
               <section className="cartao">
                 <h2>Entregadores</h2>
-                <p className="muted" style={{ margin: 0 }}>Entregadores da plataforma precisam enviar CNH, documento da moto e selfie, e você aprova depois de conferir. Entregadores de uma loja (cadastrados com o código dela) não precisam.</p>
+                <p className="muted" style={{ margin: 0 }}>Todo entregador precisa enviar CNH e documento do veículo (moto/carro), selfie, comprovante de residência, CPF e endereço, e você aprova depois de conferir.</p>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="tabela-simples">
                     <thead>
