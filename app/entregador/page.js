@@ -155,7 +155,7 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onChegadaCliente, onEntr
       )}
       {!saiu && (
         <div className={p.chegou_loja_em ? 'aviso' : 'entrega-info'} role="status">
-          {p.chegou_loja_em ? 'A loja foi avisada que você chegou. Pegue o pedido e toque em "Peguei o pedido".' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
+          {p.chegou_loja_em ? 'A loja foi avisada que você chegou. Pegue o pedido, tire a foto dele e siga para o cliente.' : 'Ao chegar na loja, toque em "Cheguei na loja". Ela recebe um alerta para entregar o pedido a você.'}
         </div>
       )}
 
@@ -223,7 +223,7 @@ function CartaoEntrega({ p, posicao, onAcao, onChegada, onChegadaCliente, onEntr
               </button>
             ) : !p.foto_coleta_em ? (
               <label className="btn btn-primario" style={{ cursor: ocupado ? 'default' : 'pointer', opacity: ocupado ? 0.6 : 1 }}>
-                {ocupado ? 'Enviando foto…' : 'Tirar foto do pedido'}
+                {ocupado ? 'Enviando foto…' : 'Tirar foto e seguir para o cliente'}
                 <input type="file" accept="image/*" capture="environment" hidden disabled={ocupado} onChange={(e) => { const a = e.target.files?.[0]; e.target.value = ''; if (a) onFoto(p.id, a); }} />
               </label>
             ) : (
@@ -305,6 +305,9 @@ function Painel({ dados, recarregar, aoSair }) {
       f.append('pedido_id', id);
       f.append('arquivo', blob, 'coleta.jpg');
       await apiEnviar('/api/entrega/coleta', f);
+      // A foto confirma a retirada: o pedido já sai para entrega e a tela passa para o endereço do cliente.
+      await api('/api/entrega/avancar', { metodo: 'POST', corpo: { pedido_id: id, acao: 'coletei' } });
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   const aceitar = (id) => executar(() => api('/api/entrega/aceitar', { metodo: 'POST', corpo: { pedido_id: id } }));
   // "Cheguei na loja": manda a posição para o servidor conferir que você está perto (se o GPS permitir).
