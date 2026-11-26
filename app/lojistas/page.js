@@ -48,6 +48,8 @@ export default function Lojistas() {
       </header>
 
       <main className="pagina">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="cap-banner" src="/img/hero-broke.jpg" width={1600} height={900} alt="Brokê: clientes e entregador usando o aplicativo" />
         <section className="lj-tipos" aria-label="Para quem é">
           {TIPOS.map((t) => (
             <article key={t.nome} className="lj-tipo">

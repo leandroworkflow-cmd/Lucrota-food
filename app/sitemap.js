@@ -15,6 +15,7 @@ export default async function sitemap() {
       priority: 0.8,
     })),
     { url: `${SITE.url}/lojistas`, lastModified: agora, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${SITE.url}/seja-entregador`, lastModified: agora, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${SITE.url}/termos`, lastModified: agora, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${SITE.url}/privacidade`, lastModified: agora, changeFrequency: 'yearly', priority: 0.2 },
   ];

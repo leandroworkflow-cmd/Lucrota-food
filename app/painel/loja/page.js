@@ -40,7 +40,9 @@ export default function MinhaLoja() {
     responsavel_cpf: loja?.responsavel_cpf ? formatarCpf(loja.responsavel_cpf) : '',
   });
   // Dados da empresa: pedidos no cadastro novo e em lojas antigas que ainda não informaram. Aprovada com CNPJ, fica travado.
-  const pedirEmpresa = nova || !loja.cnpj;
+  // Loja liberada pela administração (cadastro_dispensado) ou conta de teste: não pede CNPJ nem termo.
+  const dispensada = !nova && Boolean(loja.cadastro_dispensado || loja.conta_teste);
+  const pedirEmpresa = nova || (!loja.cnpj && !dispensada);
   const travadoEmpresa = !nova && Boolean(loja.cnpj) && loja.ativa;
   const [aceito, setAceito] = useState(false);
   const [ponto, setPonto] = useState(loja && Number.isFinite(loja.lat) ? { lat: loja.lat, lng: loja.lng } : null);
@@ -165,7 +167,7 @@ export default function MinhaLoja() {
     <>
       <h1 style={{ fontSize: 28 }}>{nova ? 'Cadastre sua loja' : 'Minha loja'}</h1>
       {pedirEmpresa && <RequisitosLoja />}
-      {!nova && !loja.cnpj && (
+      {!nova && !loja.cnpj && !dispensada && (
         <div className="aviso aviso-erro" role="status">
           Informe o CNPJ da loja e aceite o termo de parceria para continuar vendendo.
         </div>
