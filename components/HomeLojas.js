@@ -128,9 +128,6 @@ export default function HomeLojas({ lojas }) {
                       <div className="dest-nome">{l.nome}</div>
                       <div className="dest-info">
                         {l.tempo_estimado && <span>🕒 {l.tempo_estimado}</span>}
-                        <span>
-                          🛵 a partir de {brl(5.9)}
-                        </span>
                       </div>
                       <span className="pedir">Pedir agora ›</span>
                     </div>
@@ -185,9 +182,6 @@ export default function HomeLojas({ lojas }) {
                     <div className="loja-card-sub">{[l.categoria, l.bairro].filter(Boolean).join(' · ')}</div>
                     <div className="loja-card-info">
                       {l.tempo_estimado && <span>🕒 {l.tempo_estimado}</span>}
-                      <span>
-                        🛵 Entrega a partir de {brl(5.9)}
-                      </span>
                       {Number(l.pedido_minimo) > 0 && <span>Mín. {brl(l.pedido_minimo)}</span>}
                     </div>
                   </div>
